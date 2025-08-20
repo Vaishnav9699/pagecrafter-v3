@@ -103,17 +103,17 @@ export default function ChatPanel({ onCodeGenerated }: ChatPanelProps) {
         {messages.map((message, index) => (
           <div
             key={index}
-            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
           >
             <div
-              className={`max-w-[85%] p-4 rounded-2xl shadow-sm ${
+              className={`max-w-[85%] p-4 rounded-2xl backdrop-blur-sm transition-all duration-200 hover:shadow-lg ${
                 message.role === 'user'
                   ? theme === 'dark'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-blue-600 text-white'
+                    ? 'bg-primary text-white shadow-primary/20'
+                    : 'bg-primary text-white shadow-primary/20'
                   : theme === 'dark'
-                    ? 'bg-gray-800 text-gray-100 border border-gray-700'
-                    : 'bg-white text-gray-800 border border-gray-200'
+                    ? 'bg-card text-card-foreground border border-border/50'
+                    : 'bg-white text-gray-800 border border-border/50 shadow-md'
               }`}
             >
               <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
