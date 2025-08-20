@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface ChatPanelProps {
   onCodeGenerated: (code: { html: string; css: string; js: string }) => void;
@@ -12,6 +13,7 @@ interface Message {
 }
 
 export default function ChatPanel({ onCodeGenerated }: ChatPanelProps) {
+  const { theme, toggleTheme } = useTheme();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -66,36 +68,68 @@ export default function ChatPanel({ onCodeGenerated }: ChatPanelProps) {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="bg-blue-600 text-white p-4">
-        <h1 className="text-xl font-bold">PageCrafter AI</h1>
-        <p className="text-blue-100 text-sm">Create web pages with AI assistance</p>
+    <div className={`flex flex-col h-full ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
+      {/* Header with theme toggle */}
+      <div className={`${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-blue-600 border-blue-700'} border-b p-4 flex justify-between items-center`}>
+        <div>
+          <h1 className="text-xl font-bold text-white">PageCrafter AI</h1>
+          <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-blue-100'}`}>
+            Create web pages with AI assistance
+          </p>
+        </div>
+        <button
+          onClick={toggleTheme}
+          className={`p-2 rounded-lg transition-colors ${
+            theme === 'dark' 
+              ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400' 
+              : 'bg-blue-700 hover:bg-blue-800 text-white'
+          }`}
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        >
+          {theme === 'dark' ? (
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+            </svg>
+          )}
+        </button>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className={`flex-1 overflow-y-auto p-6 space-y-4 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
         {messages.map((message, index) => (
           <div
             key={index}
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[80%] p-3 rounded-lg ${
+              className={`max-w-[85%] p-4 rounded-2xl shadow-sm ${
                 message.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-800'
+                  ? theme === 'dark'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-blue-600 text-white'
+                  : theme === 'dark'
+                    ? 'bg-gray-800 text-gray-100 border border-gray-700'
+                    : 'bg-white text-gray-800 border border-gray-200'
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
             </div>
           </div>
         ))}
         
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-gray-200 text-gray-800 p-3 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+            <div className={`p-4 rounded-2xl shadow-sm ${
+              theme === 'dark' 
+                ? 'bg-gray-800 text-gray-100 border border-gray-700' 
+                : 'bg-white text-gray-800 border border-gray-200'
+            }`}>
+              <div className="flex items-center space-x-3">
+                <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
                 <span className="text-sm">Generating code...</span>
               </div>
             </div>
@@ -103,22 +137,29 @@ export default function ChatPanel({ onCodeGenerated }: ChatPanelProps) {
         )}
       </div>
 
-      <div className="border-t border-gray-300 p-4">
-        <form onSubmit={handleSubmit} className="flex space-x-2">
+      {/* Input */}
+      <div className={`border-t p-4 ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}>
+        <form onSubmit={handleSubmit} className="flex space-x-3">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Describe the web page you want to create..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`flex-1 px-4 py-3 rounded-xl border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              theme === 'dark'
+                ? 'bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-400'
+                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+            }`}
             disabled={isLoading}
           />
           <button
             type="submit"
             disabled={isLoading || !input.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium shadow-sm"
           >
-            Send
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
           </button>
         </form>
       </div>
