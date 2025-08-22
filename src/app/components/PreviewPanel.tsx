@@ -10,42 +10,56 @@ interface PreviewPanelProps {
     css: string;
     js: string;
   };
+  isVisible: boolean;
 }
 
-export default function PreviewPanel({ code }: PreviewPanelProps) {
+export default function PreviewPanel({ code, isVisible }: PreviewPanelProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [activeTab, setActiveTab] = useState<'preview' | 'html' | 'css' | 'js'>('preview');
 
+  // Function to update iframe content
+  const updateIframeContent = () => {
+    if (!iframeRef.current) return;
+    
+    const iframe = iframeRef.current;
+    const fullHtml = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Preview</title>
+        <style>
+          ${code.css}
+        </style>
+      </head>
+      <body>
+        ${code.html}
+        <script>
+          ${code.js}
+        </script>
+      </body>
+      </html>
+    `;
+
+    // Use data URL to avoid cross-origin issues
+    const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(fullHtml);
+    iframe.src = dataUrl;
+  };
+
+  // Update when code changes
   useEffect(() => {
-    if (iframeRef.current) {
-      const iframe = iframeRef.current;
-
-      // Create the complete HTML document as a data URL
-      const fullHtml = `
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Preview</title>
-          <style>
-            ${code.css}
-          </style>
-        </head>
-        <body>
-          ${code.html}
-          <script>
-            ${code.js}
-          </script>
-        </body>
-        </html>
-      `;
-
-      // Use data URL to avoid cross-origin issues
-      const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(fullHtml);
-      iframe.src = dataUrl;
+    if (activeTab === 'preview') {
+      updateIframeContent();
     }
   }, [code]);
+
+  // Update when switching to preview tab
+  useEffect(() => {
+    if (activeTab === 'preview') {
+      updateIframeContent();
+    }
+  }, [activeTab]);
 
   const renderCodeView = (language: string, content: string) => (
     <div className="h-full overflow-auto bg-card">
@@ -56,7 +70,9 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
   );
 
   return (
-    <div className="flex flex-col h-full overflow-y-scroll">
+    <div className={`flex flex-col h-full overflow-y-scroll transition-all duration-500 ease-in-out transform ${
+      isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+    } md:w-1/2 w-full absolute right-0 top-0 bg-background border-l border-border`}>
       {/* Header with tabs */}
       <div className="bg-card border-b border-border">
         <div className="flex">
@@ -111,17 +127,17 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
         )}
 
         {activeTab === 'html' && (
-          <SyntaxHighlighter language="html" style={docco}>
+          <SyntaxHighlighter language="html" style={docco} customStyle={{ minHeight: '100vh' }}>
             {code.html}
           </SyntaxHighlighter>
         )}
         {activeTab === 'css' && (
-          <SyntaxHighlighter language="css" style={docco}>
+          <SyntaxHighlighter language="css" style={docco} customStyle={{ minHeight: '100vh' }}>
             {code.css}
           </SyntaxHighlighter>
         )}
         {activeTab === 'js' && (
-          <SyntaxHighlighter language="javascript" style={docco}>
+          <SyntaxHighlighter language="javascript" style={docco} customStyle={{ minHeight: '100vh' }}>
             {code.js}
           </SyntaxHighlighter>
         )}

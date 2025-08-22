@@ -22,6 +22,11 @@ export default function ChatPanel({ onCodeGenerated }: ChatPanelProps) {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [lastGeneratedCode, setLastGeneratedCode] = useState<{ html: string; css: string; js: string }>({
+    html: '',
+    css: '',
+    js: ''
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +45,12 @@ export default function ChatPanel({ onCodeGenerated }: ChatPanelProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: userMessage }),
+        body: JSON.stringify({
+          prompt: userMessage,
+          previousHtml: lastGeneratedCode.html,
+          previousCss: lastGeneratedCode.css,
+          previousJs: lastGeneratedCode.js
+        }),
       });
 
       if (!response.ok) {
@@ -54,6 +64,8 @@ export default function ChatPanel({ onCodeGenerated }: ChatPanelProps) {
       
       // Update the generated code
       if (data.code) {
+        // Store the code globally for next request
+        setLastGeneratedCode(data.code);
         onCodeGenerated(data.code);
       }
     } catch (error) {
@@ -68,7 +80,9 @@ export default function ChatPanel({ onCodeGenerated }: ChatPanelProps) {
   };
 
   return (
-    <div className={`flex flex-col h-full ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
+    <div className={`flex flex-col h-full transition-all duration-500 ease-in-out ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'} ${
+      messages.length > 1 ? 'md:w-1/2 w-full' : 'w-full'
+    }`}>
       {/* Header with theme toggle */}
       <div className={`${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-blue-600 border-blue-700'} border-b p-4 flex justify-between items-center`}>
         <div>

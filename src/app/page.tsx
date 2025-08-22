@@ -67,17 +67,20 @@ export default function Home() {
     `
   });
 
+  const [hasGeneratedCode, setHasGeneratedCode] = useState(false);
+
+  const handleCodeGeneration = (code: typeof generatedCode) => {
+    setGeneratedCode(code);
+    setHasGeneratedCode(true);
+  };
+
   return (
-    <div className={`flex h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'}`}>
-      {/* Chat Panel - Left Side */}
-      <div className={`w-1/2 ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'} border-r`}>
-        <ChatPanel onCodeGenerated={setGeneratedCode} />
-      </div>
+    <div className={`relative flex h-screen overflow-hidden ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'}`}>
+      {/* Chat Panel */}
+      <ChatPanel onCodeGenerated={handleCodeGeneration} />
       
-      {/* Preview Panel - Right Side */}
-      <div className="w-1/2">
-        <PreviewPanel code={generatedCode} />
-      </div>
+      {/* Preview Panel */}
+      <PreviewPanel code={generatedCode} isVisible={hasGeneratedCode} />
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { GoogleGenAI } from '@google/genai';
 
 export async function POST(request: NextRequest) {
   try {
-    const { message } = await request.json();
+    const message = await request.json();
 
     if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json(
@@ -58,7 +58,10 @@ Guidelines:
 - Use modern JavaScript (ES6+)
 - Keep code clean and well-commented
 - Use attractive color schemes and typography
+- Everytime generate unique and creative designs
 - Include hover effects and smooth transitions
+- If the user provides existing code, incorporate it into your response and build upon it
+- If user asks for modifications, update the existing code accordingly
 
 If the user asks for modifications, update the existing code accordingly.`;
 
@@ -67,7 +70,7 @@ If the user asks for modifications, update the existing code accordingly.`;
         role: 'user',
         parts: [
           {
-            text: `${systemPrompt}\n\nUser request: ${message}`,
+            text: `${systemPrompt}\n\nPrevious HTML:\n${message.previousHtml || ''}\n\nPrevious CSS:\n${message.previousCss || ''}\n\nPrevious JS:\n${message.previousJs || ''}\n\nUser request: ${message.prompt}`,
           },
         ],
       },
