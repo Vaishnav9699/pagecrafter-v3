@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useTheme } from './contexts/ThemeContext';
 import { useAuth } from './contexts/AuthContext';
 import ChatPanel from './components/ChatPanel';
@@ -493,18 +494,57 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                     <p className={`text-base sm:text-lg md:text-xl mb-6 sm:mb-8 px-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                       Create amazing web projects with AI-powered development
                     </p>
-                    <button
-                      onClick={handleNewProject}
-                      className="inline-flex items-center px-4 sm:px-6 md:px-8 py-2 sm:py-3 md:py-4 bg-blue-600 text-white text-sm sm:text-base md:text-lg font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
-                    >
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 mr-2 sm:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      Create New Project
-                    </button>
+
+                    {/* Show login prompt if not authenticated */}
+                    {!user && !authLoading ? (
+                      <div className={`max-w-md mx-auto p-6 rounded-xl border ${theme === 'dark' ? 'bg-gray-800/50 border-gray-700' : 'bg-white/50 border-gray-200'} backdrop-blur-sm`}>
+                        <div className="mb-4">
+                          <svg className={`w-12 h-12 mx-auto mb-3 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Sign in to create and manage your projects
+                          </p>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                          <Link
+                            href="/login"
+                            className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
+                          >
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                            </svg>
+                            Sign In
+                          </Link>
+                          <Link
+                            href="/register"
+                            className={`inline-flex items-center justify-center px-6 py-3 font-semibold rounded-lg transition-colors ${theme === 'dark'
+                              ? 'bg-gray-700 text-white hover:bg-gray-600'
+                              : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                              }`}
+                          >
+                            Create Account
+                          </Link>
+                        </div>
+                      </div>
+                    ) : user ? (
+                      <button
+                        onClick={handleNewProject}
+                        className="inline-flex items-center px-4 sm:px-6 md:px-8 py-2 sm:py-3 md:py-4 bg-blue-600 text-white text-sm sm:text-base md:text-lg font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
+                      >
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 mr-2 sm:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Create New Project
+                      </button>
+                    ) : (
+                      <div className="animate-pulse">
+                        <div className={`h-12 w-48 mx-auto rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}></div>
+                      </div>
+                    )}
                   </div>
 
-                  {projects.length > 0 && (
+                  {user && projects.length > 0 && (
                     <div>
                       <h3 className={`text-xl sm:text-2xl font-semibold mb-4 sm:mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                         Your Projects

@@ -71,7 +71,12 @@ export async function getProjects(): Promise<Project[]> {
     .order("created_at", { ascending: false });
 
   if (projectsError) {
-    console.error("Error fetching projects:", projectsError);
+    console.error(
+      "Error fetching projects:",
+      projectsError.message,
+      projectsError.code,
+      projectsError.details,
+    );
     return [];
   }
 

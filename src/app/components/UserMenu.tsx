@@ -3,10 +3,11 @@
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useState } from 'react';
 
 export default function UserMenu() {
-    const { user, signOut } = useAuth();
+    const { user, loading, signOut } = useAuth();
     const { theme } = useTheme();
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
@@ -18,15 +19,39 @@ export default function UserMenu() {
         router.push('/login');
     };
 
-    if (!user) return null;
+    // Show nothing while loading
+    if (loading) {
+        return (
+            <div className={`w-8 h-8 rounded-full animate-pulse ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`} />
+        );
+    }
+
+    // Show login button if not authenticated
+    if (!user) {
+        return (
+            <Link
+                href="/login"
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${theme === 'dark'
+                        ? 'hover:bg-gray-700 text-gray-300'
+                        : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                title="Sign In"
+            >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                </svg>
+                <span className="text-sm hidden sm:block">Sign In</span>
+            </Link>
+        );
+    }
 
     return (
         <div className="relative">
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${theme === 'dark'
-                        ? 'hover:bg-gray-700 text-gray-300'
-                        : 'hover:bg-gray-100 text-gray-700'
+                    ? 'hover:bg-gray-700 text-gray-300'
+                    : 'hover:bg-gray-100 text-gray-700'
                     }`}
             >
                 {/* User Avatar */}
@@ -58,8 +83,8 @@ export default function UserMenu() {
                     />
                     {/* Menu */}
                     <div className={`absolute right-0 mt-2 w-48 rounded-lg shadow-lg z-20 border ${theme === 'dark'
-                            ? 'bg-gray-800 border-gray-700'
-                            : 'bg-white border-gray-200'
+                        ? 'bg-gray-800 border-gray-700'
+                        : 'bg-white border-gray-200'
                         }`}>
                         <div className="py-1">
                             <div className={`px-4 py-2 text-xs border-b ${theme === 'dark' ? 'text-gray-500 border-gray-700' : 'text-gray-400 border-gray-200'
@@ -74,8 +99,8 @@ export default function UserMenu() {
                                 onClick={handleSignOut}
                                 disabled={isLoading}
                                 className={`w-full text-left px-4 py-2 text-sm transition-colors ${theme === 'dark'
-                                        ? 'text-red-400 hover:bg-gray-700'
-                                        : 'text-red-600 hover:bg-gray-50'
+                                    ? 'text-red-400 hover:bg-gray-700'
+                                    : 'text-red-600 hover:bg-gray-50'
                                     } disabled:opacity-50`}
                             >
                                 {isLoading ? 'Signing out...' : 'Sign Out'}
