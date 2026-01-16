@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useTheme } from './contexts/ThemeContext';
 import ChatPanel from './components/ChatPanel';
 import PreviewPanel from './components/PreviewPanel';
 import Sidebar from './components/Sidebar';
 import SettingsModal from './components/SettingsModal';
+import ApiKeyModal from './components/ApiKeyModal';
 import ProjectFiles from './components/ProjectFiles';
 import NewProjectModal from './components/NewProjectModal';
 import {
@@ -32,6 +34,7 @@ export default function Home() {
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
   const [generatedCode, setGeneratedCode] = useState({
@@ -94,11 +97,10 @@ export default function Home() {
     `
   });
 
-  const [hasGeneratedCode, setHasGeneratedCode] = useState(true);
+  const [hasGeneratedCode, setHasGeneratedCode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'projects' | 'chat'>('projects');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [mobileView, setMobileView] = useState<'chat' | 'preview'>('chat'); // Mobile toggle between chat and preview
   const [generatedPages, setGeneratedPages] = useState<Record<string, { title: string; html: string; css: string; js: string; }> | undefined>(undefined);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
@@ -127,6 +129,8 @@ export default function Home() {
     if (currentProject?.lastGeneratedCode) {
       setGeneratedCode(currentProject.lastGeneratedCode);
       setHasGeneratedCode(true);
+    } else {
+      setHasGeneratedCode(false);
     }
   }, [currentProject]);
 
@@ -313,18 +317,23 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
     window.open(gistUrl, '_blank');
   };
 
-  const handleExportCode = (format: 'html' | 'zip') => {
-    // Use current project's last generated code, or fall back to current generated code
-    const codeToExport = currentProject?.lastGeneratedCode || generatedCode;
+  const handleExportCode = (format: 'html' | 'zip', projectToExport?: Project) => {
+    // Use provided project, or current project's last generated code, or fall back to current generated code
+    const targetProject = projectToExport || currentProject;
+    const codeToExport = targetProject?.lastGeneratedCode || generatedCode;
+
     if (!codeToExport) return;
 
     const { html, css, js } = codeToExport;
-    const fullHtml = `<!DOCTYPE html>
+    const projectName = targetProject?.name || 'PageCrafter Project';
+
+    if (format === 'html') {
+      const fullHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${currentProject?.name || 'PageCrafter Project'}</title>
+    <title>${projectName}</title>
     <style>${css || ''}</style>
 </head>
 <body>
@@ -332,10 +341,6 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
     <script>${js || ''}</script>
 </body>
 </html>`;
-
-    const projectName = currentProject?.name || 'PageCrafter Project';
-
-    if (format === 'html') {
       const blob = new Blob([fullHtml], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -348,7 +353,7 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
       import('jszip').then(({ default: JSZip }) => {
         const zip = new JSZip();
 
-        // Add HTML file with inline CSS and JS
+        // Add main index.html file
         const htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -369,6 +374,24 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
 
         // Add separate JavaScript file
         zip.file('script.js', js || '/* JavaScript Code */');
+
+        // Add all other files from the project
+        if (targetProject && targetProject.files && targetProject.files.length > 0) {
+          targetProject.files.forEach(file => {
+            let extension = '';
+            if (file.type === 'html') extension = '.html';
+            else if (file.type === 'css') extension = '.css';
+            else if (file.type === 'js') extension = '.js';
+
+            // Avoid overwriting main files if names conflict, though unlikely with standard naming
+            let fileName = file.name;
+            if (!fileName.endsWith(extension)) {
+              fileName += extension;
+            }
+
+            zip.file(fileName, file.content);
+          });
+        }
 
         // Generate ZIP and download
         zip.generateAsync({ type: 'blob' }).then((blob) => {
@@ -397,6 +420,17 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
           </h1>
         </div>
         <div className="flex items-center space-x-1 sm:space-x-2">
+          {/* API Key Button */}
+          <button
+            onClick={() => setApiKeyModalOpen(true)}
+            className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
+            title="Set API Key"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11.5 17.5 14 20l-2.257 1.121-5.571-5.417a6 6 0 117.571-7.961z" />
+            </svg>
+          </button>
+
           {/* Dark Mode Toggle Button */}
           <button
             onClick={toggleTheme}
@@ -414,134 +448,25 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
             )}
           </button>
 
-          {/* Download Button with Dropdown */}
-          <div className="relative download-menu-container">
-            <button
-              onClick={() => setDownloadMenuOpen(!downloadMenuOpen)}
-              className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
-              title="Download Project"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-            </button>
+          {/* Login Button */}
+          <Link
+            href="/login"
+            className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
+            title="Login"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+            </svg>
+          </Link>
 
-            {/* Download Dropdown Menu */}
-            {downloadMenuOpen && (
-              <div className={`absolute right-0 mt-2 w-48 sm:w-56 rounded-lg shadow-lg z-50 ${theme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
-                <div className="py-1">
-                  <div className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Export Options
-                  </div>
-                  <button
-                    onClick={() => {
-                      handleExportCode('html');
-                      setDownloadMenuOpen(false);
-                    }}
-                    className={`w-full text-left px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm transition-colors flex items-center space-x-2 sm:space-x-3 ${theme === 'dark' ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                    </svg>
-                    <div>
-                      <div className="font-medium">Download as HTML</div>
-                      <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Single HTML file</div>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleExportCode('zip');
-                      setDownloadMenuOpen(false);
-                    }}
-                    className={`w-full text-left px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm transition-colors flex items-center space-x-2 sm:space-x-3 ${theme === 'dark' ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
-                    </svg>
-                    <div>
-                      <div className="font-medium">Download as ZIP</div>
-                      <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Separate HTML, CSS & JS files</div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+
         </div>
       </header>
 
-      {/* Tabs */}
-      <div className={`fixed top-[45px] sm:top-[53px] left-0 right-0 flex items-center justify-between border-b ${theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'} z-40`}>
-        <div className="flex flex-1 sm:flex-none">
-          <button
-            onClick={() => setActiveTab('projects')}
-            className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-colors ${activeTab === 'projects'
-              ? theme === 'dark'
-                ? 'text-blue-400 border-b-2 border-blue-400 bg-gray-900'
-                : 'text-blue-600 border-b-2 border-blue-600 bg-gray-50'
-              : theme === 'dark'
-                ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              }`}
-          >
-            📋 Projects
-          </button>
-          <button
-            onClick={() => setActiveTab('chat')}
-            className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-colors ${activeTab === 'chat'
-              ? theme === 'dark'
-                ? 'text-blue-400 border-b-2 border-blue-400 bg-gray-900'
-                : 'text-blue-600 border-b-2 border-blue-600 bg-gray-50'
-              : theme === 'dark'
-                ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              }`}
-          >
-            💬 Chat
-          </button>
-        </div>
 
-        {/* Toggle View Buttons */}
-        {activeTab === 'projects' && (
-          <div className="hidden sm:flex items-center space-x-1 mr-2 sm:mr-4">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-lg transition-colors ${viewMode === 'grid'
-                ? theme === 'dark'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-blue-600 text-white'
-                : theme === 'dark'
-                  ? 'hover:bg-gray-700 text-gray-300'
-                  : 'hover:bg-gray-100 text-gray-600'
-                }`}
-              title="Grid View"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-              </svg>
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 rounded-lg transition-colors ${viewMode === 'list'
-                ? theme === 'dark'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-blue-600 text-white'
-                : theme === 'dark'
-                  ? 'hover:bg-gray-700 text-gray-300'
-                  : 'hover:bg-gray-100 text-gray-600'
-                }`}
-              title="List View"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          </div>
-        )}
-      </div>
 
       {/* Main Content Area - Add padding-top to account for fixed header and tabs */}
-      <div className="flex flex-col md:flex-row flex-1 overflow-hidden pt-[85px] sm:pt-[105px]">
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden pt-[60px]">
         {/* Sidebar */}
         <Sidebar
           isOpen={sidebarOpen}
@@ -586,27 +511,27 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                       <h3 className={`text-xl sm:text-2xl font-semibold mb-4 sm:mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                         Your Projects
                       </h3>
-                      <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6' : 'flex flex-col space-y-3 sm:space-y-4'}>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
                         {projects.map((project) => (
                           <div
                             key={project.id}
-                            className={`group relative ${viewMode === 'grid' ? 'p-4 sm:p-5 md:p-6' : 'p-3 sm:p-4 flex items-center'} rounded-lg border cursor-pointer transition-all duration-300 ${viewMode === 'grid' ? 'hover:shadow-xl sm:hover:shadow-2xl hover:-translate-y-1 sm:hover:-translate-y-2' : 'hover:shadow-lg'} ${theme === 'dark'
+                            className={`group relative p-4 sm:p-5 md:p-6 rounded-lg border cursor-pointer transition-all duration-300 hover:shadow-xl sm:hover:shadow-2xl hover:-translate-y-1 sm:hover:-translate-y-2 ${theme === 'dark'
                               ? 'bg-gray-800/80 backdrop-blur-sm border-gray-700 hover:bg-gray-750 hover:border-transparent'
                               : 'bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-gray-50 hover:border-transparent'
-                              } ${viewMode === 'grid' ? 'hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] before:absolute before:inset-0 before:rounded-lg before:p-[2px] before:bg-gradient-to-r before:from-blue-400 before:via-purple-400 before:to-pink-400 before:opacity-0 hover:before:opacity-70 before:transition-opacity before:duration-300 before:pointer-events-none' : ''}`}
-                            style={viewMode === 'grid' ? {
+                              } hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] before:absolute before:inset-0 before:rounded-lg before:p-[2px] before:bg-gradient-to-r before:from-blue-400 before:via-purple-400 before:to-pink-400 before:opacity-0 hover:before:opacity-70 before:transition-opacity before:duration-300 before:pointer-events-none ${menuOpen === project.id ? 'z-30' : ''}`}
+                            style={{
                               background: theme === 'dark'
                                 ? 'linear-gradient(135deg, rgba(31,41,55,0.8), rgba(17,24,39,0.8))'
                                 : 'linear-gradient(135deg, rgba(255,255,255,0.8), rgba(248,250,252,0.8))'
-                            } : undefined}
+                            }}
                             onClick={() => {
                               setCurrentProject(project);
                               setActiveTab('chat');
                             }}
                           >
-                            <div className={`relative z-10 ${viewMode === 'list' ? 'flex items-center flex-1' : ''}`}>
+                            <div className="relative z-10">
                               {/* Three-dot menu button */}
-                              <div className={viewMode === 'list' ? 'ml-auto flex items-center space-x-4' : 'absolute top-0 right-0'}>
+                              <div className="absolute top-0 right-0">
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -622,7 +547,7 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
 
                                 {/* Dropdown menu */}
                                 {menuOpen === project.id && (
-                                  <div className={`absolute right-0 mt-2 w-48 rounded-md shadow-lg z-20 ${theme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
+                                  <div className={`absolute right-0 mt-2 w-48 max-h-64 overflow-y-auto rounded-md shadow-lg z-20 ${theme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
                                     <div className="py-1">
                                       <button
                                         onClick={(e) => {
@@ -634,6 +559,26 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                                         className={`block w-full text-left px-4 py-2 text-sm transition-colors ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`}
                                       >
                                         Close Project
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleExportCode('zip', project);
+                                          setMenuOpen(null);
+                                        }}
+                                        className={`block w-full text-left px-4 py-2 text-sm transition-colors ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`}
+                                      >
+                                        Download as ZIP
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleExportCode('html', project);
+                                          setMenuOpen(null);
+                                        }}
+                                        className={`block w-full text-left px-4 py-2 text-sm transition-colors ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`}
+                                      >
+                                        Download as HTML
                                       </button>
                                       <button
                                         onClick={(e) => {
@@ -662,8 +607,8 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                                 )}
                               </div>
 
-                              <div className={viewMode === 'list' ? 'flex-1' : ''}>
-                                <h4 className={`${viewMode === 'list' ? 'text-lg' : 'text-xl'} font-semibold ${viewMode === 'list' ? 'mb-1' : 'mb-2'} ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                              <div>
+                                <h4 className={`text-xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                                   {renameProjectId === project.id ? (
                                     <input
                                       type="text"
@@ -694,37 +639,35 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                                     project.name
                                   )}
                                 </h4>
-                                {project.description && viewMode === 'grid' && (
+                                {project.description && (
                                   <p className={`text-sm mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                                     {project.description}
                                   </p>
                                 )}
-                                <p className={`text-sm ${viewMode === 'list' ? 'mb-0' : 'mb-4'} ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                                <p className={`text-sm mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                                   {project.messages.length} messages • {project.files.length} files
                                 </p>
-                                {viewMode === 'grid' && (
-                                  <div className="flex items-center justify-between">
-                                    <p className={`text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>
-                                      Created {project.createdAt.toLocaleDateString()}
-                                    </p>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleShareToGitHub(project);
-                                      }}
-                                      className={`flex items-center space-x-1 px-3 py-1 rounded-md text-xs font-medium transition-colors ${theme === 'dark'
-                                        ? 'bg-gray-700 hover:bg-gray-600 text-gray-200'
-                                        : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                                        }`}
-                                      title="Share to GitHub"
-                                    >
-                                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                                      </svg>
-                                      <span>Share</span>
-                                    </button>
-                                  </div>
-                                )}
+                                <div className="flex items-center justify-between">
+                                  <p className={`text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>
+                                    Created {project.createdAt.toLocaleDateString()}
+                                  </p>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleShareToGitHub(project);
+                                    }}
+                                    className={`flex items-center space-x-1 px-3 py-1 rounded-md text-xs font-medium transition-colors ${theme === 'dark'
+                                      ? 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+                                      : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                                      }`}
+                                    title="Share to GitHub"
+                                  >
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                                    </svg>
+                                    <span>Share</span>
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -738,7 +681,7 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
           ) : (
             <>
               {/* Chat Panel - Show based on mobile view state */}
-              <div className={`${mobileView === 'chat' ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-1/2 h-full overflow-hidden`}>
+              <div className={`${mobileView === 'chat' ? 'flex' : 'hidden'} md:flex flex-col w-full ${hasGeneratedCode || isLoading ? 'md:w-1/2' : 'max-w-5xl mx-auto'} h-full overflow-hidden transition-all duration-300`}>
                 <ChatPanel
                   onCodeGenerated={handleCodeGeneration}
                   onLoadingChange={setIsLoading}
@@ -747,13 +690,16 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                   onCodeUpdate={handleCodeUpdate}
                   onShowSettings={() => setSettingsOpen(true)}
                   onShowHistory={() => {/* TODO: Show history modal */ }}
+                  onBack={() => setActiveTab('projects')}
                 />
               </div>
 
-              {/* Preview Panel - Show based on mobile view state */}
-              <div className={`${mobileView === 'preview' ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-1/2 h-full overflow-hidden`}>
-                <PreviewPanel code={generatedCode} pages={generatedPages} isVisible={hasGeneratedCode} isLoading={isLoading} />
-              </div>
+              {/* PreviewPanel - Show only when generating or generated */}
+              {(hasGeneratedCode || isLoading) && (
+                <div className={`${mobileView === 'preview' ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-1/2 h-full overflow-hidden border-l ${theme === 'dark' ? 'border-gray-800' : 'border-gray-200'}`}>
+                  <PreviewPanel code={generatedCode} pages={generatedPages} isVisible={hasGeneratedCode} isLoading={isLoading} />
+                </div>
+              )}
 
               {/* Mobile Toggle Button - Fixed and visible in both chat and preview */}
               {hasGeneratedCode && (
@@ -794,6 +740,11 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         onExportCode={handleExportCode}
+      />
+
+      <ApiKeyModal
+        isOpen={apiKeyModalOpen}
+        onClose={() => setApiKeyModalOpen(false)}
       />
 
       {/* New Project Modal */}

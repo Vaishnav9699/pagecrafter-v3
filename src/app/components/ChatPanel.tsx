@@ -13,6 +13,7 @@ interface ChatPanelProps {
   onToggleSidebar?: () => void;
   onShowHistory?: () => void;
   onShowSettings?: () => void;
+  onBack?: () => void;
 }
 
 interface Message {
@@ -20,19 +21,13 @@ interface Message {
   content: string;
 }
 
-const SUGGESTED_PROMPTS = [
-  '🎨 Create a colorful landing page',
-  '📱 Build a mobile app mockup',
-  '🛒 Design an e-commerce product card',
-  '✍️ Make a blog post layout',
-  '🎯 Create a portfolio showcase',
-  '💬 Design a chat interface'
-];
 
-export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentProject, onMessagesUpdate, onCodeUpdate, onShowHistory, onShowSettings }: ChatPanelProps) {
+
+export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentProject, onMessagesUpdate, onCodeUpdate, onShowHistory, onShowSettings, onBack }: ChatPanelProps) {
   const { theme, toggleTheme } = useTheme();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [messages, setMessages] = useState<Message[]>(currentProject?.messages || [
     {
@@ -128,14 +123,40 @@ export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentPro
     }
   };
 
-  const handleSuggestedPrompt = (prompt: string) => {
-    setInput(prompt);
+
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      // TODO: Handle file upload logic here
+      console.log('Files selected:', e.target.files);
+    }
   };
 
   return (
-    <div className={`flex flex-col h-full min-h-0 transition-all duration-500 ease-in-out ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
+    <div className={`flex flex-col h-full min-h-0 transition-all duration-500 ease-in-out ${theme === 'dark' ? 'bg-gray-900' : 'bg-[#CCCCFF]'}`}>
+      {/* Header with Back Button */}
+      <div className={`flex items-center p-3 sm:p-4 border-b ${theme === 'dark' ? 'border-gray-800' : 'border-gray-200'}`}>
+        <button
+          onClick={onBack}
+          className={`p-2 mr-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-gray-800 text-gray-300' : 'hover:bg-gray-100 text-gray-600'}`}
+          title="Back to Projects"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+        </button>
+        <h2 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+          {currentProject?.name || 'New Project'}
+        </h2>
+      </div>
+
       {/* Messages */}
-      <div ref={messagesContainerRef} className={`flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 scroll-smooth ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      <div ref={messagesContainerRef} className={`flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 scroll-smooth ${theme === 'dark' ? 'bg-gray-900' : 'bg-transparent'}`} style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <style jsx>{`
+          div::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
         {messages.map((message, index) => (
           <div
             key={index}
@@ -156,29 +177,7 @@ export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentPro
           </div>
         ))}
 
-        {/* Show suggested prompts only on initial state (no user messages yet) */}
-        {messages.length === 1 && !isLoading && (
-          <div className="mt-8 space-y-3">
-            <p className={`text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-              }`}>
-              Try these suggestions
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-1 gap-2">
-              {SUGGESTED_PROMPTS.map((prompt, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleSuggestedPrompt(prompt)}
-                  className={`p-3 sm:p-3.5 rounded-lg text-left text-sm sm:text-sm font-medium transition-all duration-200 hover:scale-105 active:scale-95 ${theme === 'dark'
-                    ? 'bg-gray-800 hover:bg-gray-700 text-gray-100 border border-gray-700'
-                    : 'bg-white hover:bg-blue-50 text-gray-800 border border-gray-200 shadow-sm'
-                    }`}
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+
 
         {isLoading && (
           <div className="flex justify-start animate-fade-in">
@@ -202,7 +201,7 @@ export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentPro
       </div>
 
       {/* Input */}
-      <div className={`border-t p-3 sm:p-4 ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}>
+      <div className={`border-t p-3 sm:p-4 ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-[#CCCCFF] border-blue-200'}`}>
         <form onSubmit={handleSubmit} className="flex space-x-2 sm:space-x-3">
           <input
             type="text"
@@ -215,6 +214,28 @@ export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentPro
               }`}
             disabled={isLoading}
           />
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*"
+            multiple
+            onChange={handleFileSelect}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className={`px-3 py-2.5 sm:py-3 rounded-xl hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-sm transform active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center border ${theme === 'dark'
+              ? 'bg-gray-800 border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-white'
+              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+              }`}
+            title="Add images"
+            disabled={isLoading}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+            </svg>
+          </button>
           <button
             type="submit"
             disabled={isLoading || !input.trim()}
