@@ -8,6 +8,15 @@ import Sidebar from './components/Sidebar';
 import SettingsModal from './components/SettingsModal';
 import ProjectFiles from './components/ProjectFiles';
 import NewProjectModal from './components/NewProjectModal';
+import {
+  getProjects,
+  createProject as createProjectInDb,
+  deleteProject as deleteProjectInDb,
+  updateProjectCode as updateProjectCodeInDb,
+  replaceProjectMessages,
+  updateProject as updateProjectInDb,
+  Project,
+} from '../lib/supabaseOperations';
 
 interface ProjectFile {
   id: string;
@@ -15,16 +24,6 @@ interface ProjectFile {
   content: string;
   type: 'html' | 'css' | 'js';
   createdAt: Date;
-}
-
-interface Project {
-  id: string;
-  name: string;
-  description?: string;
-  createdAt: Date;
-  messages: Array<{ role: 'user' | 'assistant'; content: string }>;
-  lastGeneratedCode?: { html: string; css: string; js: string };
-  files: ProjectFile[];
 }
 
 export default function Home() {
@@ -96,60 +95,37 @@ export default function Home() {
 
   const [hasGeneratedCode, setHasGeneratedCode] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'projects' | 'chat' | 'files'>('projects');
   const [generatedPages, setGeneratedPages] = useState<Record<string, { title: string; html: string; css: string; js: string; }> | undefined>(undefined);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [renameProjectId, setRenameProjectId] = useState<string | null>(null);
 
-  // Load projects and generated code from localStorage on mount
+  // Load projects from Supabase on mount
   useEffect(() => {
-    const savedProjects = localStorage.getItem('pagecrafter_projects');
-    if (savedProjects) {
-      const parsed = JSON.parse(savedProjects).map((p: any) => ({
-        ...p,
-        createdAt: new Date(p.createdAt)
-      }));
-      setProjects(parsed);
-      // Set first project as current if exists
-      if (parsed.length > 0) {
-        setCurrentProject(parsed[0]);
+    async function loadProjects() {
+      try {
+        const fetchedProjects = await getProjects();
+        setProjects(fetchedProjects);
+        if (fetchedProjects.length > 0) {
+          setCurrentProject(fetchedProjects[0]);
+        }
+      } catch (error) {
+        console.error('Error loading projects:', error);
+      } finally {
+        setIsInitialLoading(false);
       }
     }
-
-    // Load saved generated code (global fallback)
-    const savedGeneratedCode = localStorage.getItem('pagecrafter_generated_code');
-    const savedHasGeneratedCode = localStorage.getItem('pagecrafter_has_generated_code');
-
-    if (savedGeneratedCode) {
-      setGeneratedCode(JSON.parse(savedGeneratedCode));
-    }
-    if (savedHasGeneratedCode) {
-      setHasGeneratedCode(JSON.parse(savedHasGeneratedCode));
-    }
+    loadProjects();
   }, []);
 
-  // Update generated code when current project changes (prioritize project-specific code)
+  // Update generated code when current project changes
   useEffect(() => {
     if (currentProject?.lastGeneratedCode) {
       setGeneratedCode(currentProject.lastGeneratedCode);
       setHasGeneratedCode(true);
     }
   }, [currentProject]);
-
-  // Save projects to localStorage when projects change
-  useEffect(() => {
-    localStorage.setItem('pagecrafter_projects', JSON.stringify(projects));
-  }, [projects]);
-
-  // Save generated code to localStorage when it changes
-  useEffect(() => {
-    localStorage.setItem('pagecrafter_generated_code', JSON.stringify(generatedCode));
-  }, [generatedCode]);
-
-  // Save hasGeneratedCode state to localStorage when it changes
-  useEffect(() => {
-    localStorage.setItem('pagecrafter_has_generated_code', JSON.stringify(hasGeneratedCode));
-  }, [hasGeneratedCode]);
 
   // Initialize falling stars effect for projects page
   useEffect(() => {
@@ -212,9 +188,9 @@ export default function Home() {
     }
   }, [activeTab, theme]);
 
-  const handleCodeGeneration = (code: typeof generatedCode, pages?: Record<string, { title: string; html: string; css: string; js: string }> | null) => {
+  const handleCodeGeneration = async (code: typeof generatedCode, pages?: Record<string, { title: string; html: string; css: string; js: string }> | null) => {
     setGeneratedCode(code);
-    setGeneratedPages(pages);
+    setGeneratedPages(pages || undefined);
     setHasGeneratedCode(true);
 
     // Also save to current project's lastGeneratedCode if a project is active
@@ -222,6 +198,8 @@ export default function Home() {
       setProjects(prev => prev.map(p =>
         p.id === currentProject.id ? { ...p, lastGeneratedCode: code } : p
       ));
+      // Save to Supabase
+      await updateProjectCodeInDb(currentProject.id, code);
     }
   };
 
@@ -234,43 +212,44 @@ export default function Home() {
     setNewProjectModalOpen(true);
   };
 
-  const handleCreateProject = (name: string, description: string) => {
-    const newProject: Project = {
-      id: Date.now().toString(),
-      name,
-      description: description || undefined,
-      createdAt: new Date(),
-      messages: [],
-      lastGeneratedCode: undefined,
-      files: []
-    };
-    setProjects(prev => [...prev, newProject]);
-    setCurrentProject(newProject);
-    setSidebarOpen(false);
-    setActiveTab('chat');
-  };
-
-  const handleDeleteProject = (projectId: string) => {
-    setProjects(prev => prev.filter(p => p.id !== projectId));
-    if (currentProject?.id === projectId) {
-      const remainingProjects = projects.filter(p => p.id !== projectId);
-      setCurrentProject(remainingProjects.length > 0 ? remainingProjects[0] : null);
+  const handleCreateProject = async (name: string, description: string) => {
+    const newProject = await createProjectInDb(name, description || undefined);
+    if (newProject) {
+      setProjects(prev => [newProject, ...prev]);
+      setCurrentProject(newProject);
+      setSidebarOpen(false);
+      setActiveTab('chat');
     }
   };
 
-  const handleMessagesUpdate = (messages: Array<{ role: 'user' | 'assistant'; content: string }>) => {
+  const handleDeleteProject = async (projectId: string) => {
+    const success = await deleteProjectInDb(projectId);
+    if (success) {
+      setProjects(prev => prev.filter(p => p.id !== projectId));
+      if (currentProject?.id === projectId) {
+        const remainingProjects = projects.filter(p => p.id !== projectId);
+        setCurrentProject(remainingProjects.length > 0 ? remainingProjects[0] : null);
+      }
+    }
+  };
+
+  const handleMessagesUpdate = async (messages: Array<{ role: 'user' | 'assistant'; content: string }>) => {
     if (currentProject) {
       setProjects(prev => prev.map(p =>
         p.id === currentProject.id ? { ...p, messages } : p
       ));
+      // Save messages to Supabase
+      await replaceProjectMessages(currentProject.id, messages);
     }
   };
 
-  const handleCodeUpdate = (code: { html: string; css: string; js: string }) => {
+  const handleCodeUpdate = async (code: { html: string; css: string; js: string }) => {
     if (currentProject) {
       setProjects(prev => prev.map(p =>
         p.id === currentProject.id ? { ...p, lastGeneratedCode: code } : p
       ));
+      // Save code to Supabase
+      await updateProjectCodeInDb(currentProject.id, code);
     }
   };
 
@@ -432,43 +411,40 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
       <div className={`flex border-b ${theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
         <button
           onClick={() => setActiveTab('projects')}
-          className={`px-6 py-3 text-sm font-medium transition-colors ${
-            activeTab === 'projects'
-              ? theme === 'dark'
-                ? 'text-blue-400 border-b-2 border-blue-400 bg-gray-900'
-                : 'text-blue-600 border-b-2 border-blue-600 bg-gray-50'
-              : theme === 'dark'
-                ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-          }`}
+          className={`px-6 py-3 text-sm font-medium transition-colors ${activeTab === 'projects'
+            ? theme === 'dark'
+              ? 'text-blue-400 border-b-2 border-blue-400 bg-gray-900'
+              : 'text-blue-600 border-b-2 border-blue-600 bg-gray-50'
+            : theme === 'dark'
+              ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
         >
           📋 Projects
         </button>
         <button
           onClick={() => setActiveTab('chat')}
-          className={`px-6 py-3 text-sm font-medium transition-colors ${
-            activeTab === 'chat'
-              ? theme === 'dark'
-                ? 'text-blue-400 border-b-2 border-blue-400 bg-gray-900'
-                : 'text-blue-600 border-b-2 border-blue-600 bg-gray-50'
-              : theme === 'dark'
-                ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-          }`}
+          className={`px-6 py-3 text-sm font-medium transition-colors ${activeTab === 'chat'
+            ? theme === 'dark'
+              ? 'text-blue-400 border-b-2 border-blue-400 bg-gray-900'
+              : 'text-blue-600 border-b-2 border-blue-600 bg-gray-50'
+            : theme === 'dark'
+              ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
         >
           💬 Chat
         </button>
         <button
           onClick={() => setActiveTab('files')}
-          className={`px-6 py-3 text-sm font-medium transition-colors ${
-            activeTab === 'files'
-              ? theme === 'dark'
-                ? 'text-blue-400 border-b-2 border-blue-400 bg-gray-900'
-                : 'text-blue-600 border-b-2 border-blue-600 bg-gray-50'
-              : theme === 'dark'
-                ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-          }`}
+          className={`px-6 py-3 text-sm font-medium transition-colors ${activeTab === 'files'
+            ? theme === 'dark'
+              ? 'text-blue-400 border-b-2 border-blue-400 bg-gray-900'
+              : 'text-blue-600 border-b-2 border-blue-600 bg-gray-50'
+            : theme === 'dark'
+              ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
         >
           📁 Files
         </button>
@@ -524,11 +500,10 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                         {projects.map((project) => (
                           <div
                             key={project.id}
-                            className={`group relative p-6 rounded-lg border cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 ${
-                              theme === 'dark'
-                                ? 'bg-gray-800/80 backdrop-blur-sm border-gray-700 hover:bg-gray-750 hover:border-transparent'
-                                : 'bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-gray-50 hover:border-transparent'
-                            } hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] before:absolute before:inset-0 before:rounded-lg before:p-[2px] before:bg-gradient-to-r before:from-blue-400 before:via-purple-400 before:to-pink-400 before:opacity-0 hover:before:opacity-70 before:transition-opacity before:duration-300 before:pointer-events-none`}
+                            className={`group relative p-6 rounded-lg border cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 ${theme === 'dark'
+                              ? 'bg-gray-800/80 backdrop-blur-sm border-gray-700 hover:bg-gray-750 hover:border-transparent'
+                              : 'bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-gray-50 hover:border-transparent'
+                              } hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] before:absolute before:inset-0 before:rounded-lg before:p-[2px] before:bg-gradient-to-r before:from-blue-400 before:via-purple-400 before:to-pink-400 before:opacity-0 hover:before:opacity-70 before:transition-opacity before:duration-300 before:pointer-events-none`}
                             style={{
                               background: theme === 'dark'
                                 ? 'linear-gradient(135deg, rgba(31,41,55,0.8), rgba(17,24,39,0.8))'
@@ -645,15 +620,14 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                                     e.stopPropagation();
                                     handleShareToGitHub(project);
                                   }}
-                                  className={`flex items-center space-x-1 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                                    theme === 'dark'
-                                      ? 'bg-gray-700 hover:bg-gray-600 text-gray-200'
-                                      : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                                  }`}
+                                  className={`flex items-center space-x-1 px-3 py-1 rounded-md text-xs font-medium transition-colors ${theme === 'dark'
+                                    ? 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+                                    : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                                    }`}
                                   title="Share to GitHub"
                                 >
                                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
                                   </svg>
                                   <span>Share</span>
                                 </button>
@@ -677,7 +651,7 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                 onMessagesUpdate={handleMessagesUpdate}
                 onCodeUpdate={handleCodeUpdate}
                 onShowSettings={() => setSettingsOpen(true)}
-                onShowHistory={() => {/* TODO: Show history modal */}}
+                onShowHistory={() => {/* TODO: Show history modal */ }}
               />
 
               {/* Preview Panel */}
