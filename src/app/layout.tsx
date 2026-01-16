@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Arimo } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { AuthProvider } from "./contexts/AuthContext";
 
 const arimo = Arimo({
   variable: "--font-arimo",
@@ -25,7 +26,9 @@ export default function RootLayout({
         className={` ${arimo.className} antialiased`}
       >
         <ThemeProvider>
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

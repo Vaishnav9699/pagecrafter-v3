@@ -1,15 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useTheme } from './contexts/ThemeContext';
+import { useAuth } from './contexts/AuthContext';
 import ChatPanel from './components/ChatPanel';
 import PreviewPanel from './components/PreviewPanel';
 import Sidebar from './components/Sidebar';
 import SettingsModal from './components/SettingsModal';
 import ApiKeyModal from './components/ApiKeyModal';
-import ProjectFiles from './components/ProjectFiles';
 import NewProjectModal from './components/NewProjectModal';
+import UserMenu from './components/UserMenu';
 import {
   getProjects,
   createProject as createProjectInDb,
@@ -19,6 +19,7 @@ import {
   updateProject as updateProjectInDb,
   Project,
 } from '../lib/supabaseOperations';
+
 
 interface ProjectFile {
   id: string;
@@ -30,6 +31,7 @@ interface ProjectFile {
 
 export default function Home() {
   const { theme, toggleTheme } = useTheme();
+  const { user, loading: authLoading } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -106,9 +108,14 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [renameProjectId, setRenameProjectId] = useState<string | null>(null);
 
-  // Load projects from Supabase on mount
+  // Load projects from Supabase when user is authenticated
   useEffect(() => {
     async function loadProjects() {
+      if (authLoading || !user) {
+        setIsInitialLoading(false);
+        return;
+      }
+
       try {
         const fetchedProjects = await getProjects();
         setProjects(fetchedProjects);
@@ -122,7 +129,7 @@ export default function Home() {
       }
     }
     loadProjects();
-  }, []);
+  }, [user, authLoading]);
 
   // Update generated code when current project changes
   useEffect(() => {
@@ -448,17 +455,8 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
             )}
           </button>
 
-          {/* Login Button */}
-          <Link
-            href="/login"
-            className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
-            title="Login"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-            </svg>
-          </Link>
-
+          {/* User Menu or Login Button */}
+          <UserMenu />
 
         </div>
       </header>
