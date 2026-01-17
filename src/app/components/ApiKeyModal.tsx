@@ -48,7 +48,7 @@ export default function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
                         <div className="flex items-center gap-3">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${theme === 'dark' ? 'bg-amber-500/20' : 'bg-amber-100'}`}>
                                 <svg className={`w-5 h-5 ${theme === 'dark' ? 'text-amber-400' : 'text-amber-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11.5 17.5 14 20l-2.257 1.121-5.571-5.417a6 6 0 117.571-7.961z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                                 </svg>
                             </div>
                             <div>
@@ -119,8 +119,8 @@ export default function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
                         onClick={handleSave}
                         disabled={saved}
                         className={`w-full px-4 py-3.5 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${saved
-                                ? 'bg-green-500 text-white'
-                                : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40'
+                            ? 'bg-green-500 text-white'
+                            : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40'
                             }`}
                     >
                         {saved ? (

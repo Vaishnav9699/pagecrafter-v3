@@ -416,9 +416,9 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
       {/* Header */}
       <header className={`fixed top-0 left-0 right-0 flex items-center justify-between px-4 sm:px-6 py-3 border-b backdrop-blur-xl ${theme === 'dark' ? 'bg-gray-900/80 border-gray-800/50' : 'bg-white/80 border-gray-200/50'} shadow-lg shadow-black/5 z-50`}>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+          {/* <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
             <span className="text-white font-bold text-sm">PC</span>
-          </div>
+          </div> */}
           <h1 className={`text-lg sm:text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
             <span className="hidden sm:inline">Page</span>
             <span className="hidden sm:inline gradient-text">Crafter</span>
@@ -433,7 +433,7 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
             title="Set API Key"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11.5 17.5 14 20l-2.257 1.121-5.571-5.417a6 6 0 117.571-7.961z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
             </svg>
           </button>
 
