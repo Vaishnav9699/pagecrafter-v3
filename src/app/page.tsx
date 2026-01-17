@@ -159,7 +159,9 @@ export default function Home() {
     }
   }, [downloadMenuOpen]);
 
-  // Initialize falling stars effect for projects page
+  // Falling stars effect disabled to prevent screen flickering
+  // The effect was creating new DOM elements every 200ms with infinite animations
+  /*
   useEffect(() => {
     if (activeTab === 'projects') {
       const starsContainer = document.getElementById('stars-container');
@@ -219,6 +221,7 @@ export default function Home() {
       };
     }
   }, [activeTab, theme]);
+  */
 
   const handleCodeGeneration = async (code: typeof generatedCode, pages?: Record<string, { title: string; html: string; css: string; js: string }> | null) => {
     setGeneratedCode(code);

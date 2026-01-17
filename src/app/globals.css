@@ -61,23 +61,23 @@ body {
   padding: 0;
   height: 100%;
   background-color: var(--background);
-  background-image: url('/background.png');
+  background-image: url("/background.png");
   background-size: cover;
   background-attachment: fixed;
   background-position: center;
   background-repeat: no-repeat;
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 #__next {
   height: 100%;
 }
 
-* {
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
-}
+/* Removed global transition on * that was causing flickering */
 
 /* Custom Scrollbar Styles */
 /* Webkit browsers (Chrome, Safari, Edge) */
@@ -155,7 +155,6 @@ body {
 }
 
 @keyframes twinkle {
-
   0%,
   100% {
     opacity: 0.3;
@@ -175,7 +174,7 @@ body {
 }
 
 body::before {
-  content: '';
+  content: "";
   position: fixed;
   top: 0;
   left: 0;
@@ -215,5 +214,4 @@ body::before {
     280px 560px 0 0 rgba(0, 0, 0, 0.5),
     290px 580px 0 0 rgba(0, 0, 0, 0.9),
     300px 600px 0 0 rgba(0, 0, 0, 0.4);
-  animation: twinkle 3s infinite alternate;
 }
