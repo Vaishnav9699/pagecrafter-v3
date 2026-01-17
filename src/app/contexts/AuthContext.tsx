@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email,
             password,
             options: {
-                emailRedirectTo: `${window.location.origin}/auth/callback`,
+                emailRedirectTo: 'https://pagecrafter-v2.vercel.app/auth/callback',
             },
         });
         return { error };
