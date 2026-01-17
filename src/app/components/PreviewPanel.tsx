@@ -76,6 +76,7 @@ export default function PreviewPanel({ code, pages, isVisible, isLoading = false
   // Update when code or active page changes
   useEffect(() => {
     updateIframeContent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, activePage, pages]);
 
   // Initialize activePage to first page when pages are loaded
@@ -86,6 +87,7 @@ export default function PreviewPanel({ code, pages, isVisible, isLoading = false
         setActivePage(firstPageKey);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages]);
 
   return (

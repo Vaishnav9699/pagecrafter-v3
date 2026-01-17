@@ -10,7 +10,7 @@ interface SettingsModalProps {
 }
 
 export default function SettingsModal({ isOpen, onClose, onExportCode }: SettingsModalProps) {
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const [exportFormat, setExportFormat] = useState<'html' | 'zip'>('html');
 
   if (!isOpen) return null;
@@ -104,11 +104,10 @@ export default function SettingsModal({ isOpen, onClose, onExportCode }: Setting
         <div className={`px-6 py-4 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
           <button
             onClick={onClose}
-            className={`w-full px-4 py-2 rounded-lg font-medium transition-colors ${
-              theme === 'dark'
+            className={`w-full px-4 py-2 rounded-lg font-medium transition-colors ${theme === 'dark'
                 ? 'bg-gray-800 hover:bg-gray-700 text-gray-300'
                 : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-            }`}
+              }`}
           >
             Close
           </button>

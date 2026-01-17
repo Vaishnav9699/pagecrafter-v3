@@ -17,18 +17,9 @@ import {
   deleteProject as deleteProjectInDb,
   updateProjectCode as updateProjectCodeInDb,
   replaceProjectMessages,
-  updateProject as updateProjectInDb,
   Project,
 } from '../lib/supabaseOperations';
 
-
-interface ProjectFile {
-  id: string;
-  name: string;
-  content: string;
-  type: 'html' | 'css' | 'js';
-  createdAt: Date;
-}
 
 export default function Home() {
   const { theme, toggleTheme } = useTheme();
@@ -102,7 +93,7 @@ export default function Home() {
 
   const [hasGeneratedCode, setHasGeneratedCode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [, setIsInitialLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'projects' | 'chat'>('projects');
   const [mobileView, setMobileView] = useState<'chat' | 'preview'>('chat'); // Mobile toggle between chat and preview
   const [generatedPages, setGeneratedPages] = useState<Record<string, { title: string; html: string; css: string; js: string; }> | undefined>(undefined);

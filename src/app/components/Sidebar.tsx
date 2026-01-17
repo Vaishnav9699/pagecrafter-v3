@@ -35,7 +35,6 @@ export default function Sidebar({
   currentProject,
   onProjectSelect,
   onNewProject,
-  onDeleteProject
 }: SidebarProps) {
   const { theme } = useTheme();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -46,7 +45,7 @@ export default function Sidebar({
   useEffect(() => {
     const savedProjects = localStorage.getItem('pagecrafter_projects');
     if (savedProjects) {
-      const parsed = JSON.parse(savedProjects).map((p: any) => ({
+      const parsed = JSON.parse(savedProjects).map((p: Omit<Project, 'createdAt'> & { createdAt: string }) => ({
         ...p,
         createdAt: new Date(p.createdAt)
       }));
@@ -98,9 +97,8 @@ export default function Sidebar({
       )}
 
       {/* Sidebar */}
-      <div className={`fixed left-0 top-0 h-full w-80 transform transition-transform duration-300 ease-in-out z-50 ${
-        isOpen ? 'translate-x-0' : '-translate-x-full'
-      } ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border-r shadow-xl`}>
+      <div className={`fixed left-0 top-0 h-full w-80 transform transition-transform duration-300 ease-in-out z-50 ${isOpen ? 'translate-x-0' : '-translate-x-full'
+        } ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border-r shadow-xl`}>
 
         {/* Header */}
         <div className={`p-4 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
@@ -124,11 +122,10 @@ export default function Sidebar({
           {!isCreating ? (
             <button
               onClick={() => setIsCreating(true)}
-              className={`w-full px-4 py-2 rounded-lg font-medium transition-colors ${
-                theme === 'dark'
+              className={`w-full px-4 py-2 rounded-lg font-medium transition-colors ${theme === 'dark'
                   ? 'bg-blue-600 hover:bg-blue-700 text-white'
                   : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
+                }`}
             >
               + New Project
             </button>
@@ -139,11 +136,10 @@ export default function Sidebar({
                 value={newProjectName}
                 onChange={(e) => setNewProjectName(e.target.value)}
                 placeholder="Project name"
-                className={`w-full px-3 py-2 rounded-lg border ${
-                  theme === 'dark'
+                className={`w-full px-3 py-2 rounded-lg border ${theme === 'dark'
                     ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
                     : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                }`}
+                  }`}
                 onKeyPress={(e) => e.key === 'Enter' && handleCreateProject()}
               />
               <div className="flex space-x-2">
@@ -158,11 +154,10 @@ export default function Sidebar({
                     setIsCreating(false);
                     setNewProjectName('');
                   }}
-                  className={`flex-1 px-3 py-2 rounded-lg ${
-                    theme === 'dark'
+                  className={`flex-1 px-3 py-2 rounded-lg ${theme === 'dark'
                       ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
                       : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                  }`}
+                    }`}
                 >
                   Cancel
                 </button>
@@ -184,22 +179,20 @@ export default function Sidebar({
               {projects.map((project) => (
                 <div
                   key={project.id}
-                  className={`group relative p-3 rounded-lg cursor-pointer transition-colors ${
-                    currentProject?.id === project.id
+                  className={`group relative p-3 rounded-lg cursor-pointer transition-colors ${currentProject?.id === project.id
                       ? theme === 'dark'
                         ? 'bg-blue-900 border-blue-700'
                         : 'bg-blue-100 border-blue-300'
                       : theme === 'dark'
                         ? 'hover:bg-gray-800'
                         : 'hover:bg-gray-50'
-                  } border`}
+                    } border`}
                   onClick={() => onProjectSelect(project)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
-                      <h3 className={`text-sm font-medium truncate ${
-                        theme === 'dark' ? 'text-white' : 'text-gray-900'
-                      }`}>
+                      <h3 className={`text-sm font-medium truncate ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                        }`}>
                         {project.name}
                       </h3>
                       <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -211,9 +204,8 @@ export default function Sidebar({
                         e.stopPropagation();
                         handleDeleteProject(project.id);
                       }}
-                      className={`opacity-0 group-hover:opacity-100 p-1 rounded transition-opacity ${
-                        theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
-                      }`}
+                      className={`opacity-0 group-hover:opacity-100 p-1 rounded transition-opacity ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+                        }`}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

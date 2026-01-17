@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
-import Link from 'next/link';
 
 interface ChatPanelProps {
   onCodeGenerated: (code: { html: string; css: string; js: string }, pages?: Record<string, { title: string; html: string; css: string; js: string }>) => void;
@@ -23,8 +22,8 @@ interface Message {
 
 
 
-export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentProject, onMessagesUpdate, onCodeUpdate, onShowHistory, onShowSettings, onBack }: ChatPanelProps) {
-  const { theme, toggleTheme } = useTheme();
+export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentProject, onMessagesUpdate, onCodeUpdate, onBack }: ChatPanelProps) {
+  const { theme } = useTheme();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
