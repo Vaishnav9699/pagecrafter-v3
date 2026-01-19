@@ -1110,7 +1110,7 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
 
                         {/* Settings Tabs */}
                         <div className="flex items-center gap-1 border-b border-gray-800/50 pb-px">
-                          {['Account', 'Team', 'Billing', 'API & Integrations', 'Appearance'].map((tab) => (
+                          {['Account', 'Team', 'Billing', 'API & Integrations', 'Appearance', 'Privacy'].map((tab) => (
                             <button
                               key={tab}
                               onClick={() => setSettingsTab(tab)}
@@ -1320,6 +1320,46 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                                 ))}
                               </div>
                             </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {settingsTab === 'Privacy' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
+                          <div className="bg-[#1a1c23]/60 backdrop-blur-md rounded-3xl border border-gray-800/50 p-6 flex flex-col gap-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                              </div>
+                              <h3 className="text-sm font-bold text-white uppercase tracking-widest">Data Encryption</h3>
+                            </div>
+                            <p className="text-sm text-gray-500 leading-relaxed">
+                              All project code, messages, and API keys are encrypted at rest using industry-standard AES-256 encryption. We never store your API keys in plain text format on our servers.
+                            </p>
+                          </div>
+
+                          <div className="bg-[#1a1c23]/60 backdrop-blur-md rounded-3xl border border-gray-800/50 p-6 flex flex-col gap-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                              </div>
+                              <h3 className="text-sm font-bold text-white uppercase tracking-widest">AI Usage Policy</h3>
+                            </div>
+                            <p className="text-sm text-gray-500 leading-relaxed">
+                              We use Google Gemini to generate your website code. Your prompts are sent directly to the AI. No personal authentication data is shared with AI providers unless explicitly part of your prompt.
+                            </p>
+                          </div>
+
+                          <div className="bg-[#1a1c23]/60 backdrop-blur-md rounded-3xl border border-gray-800/50 p-6 flex flex-col gap-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                              </div>
+                              <h3 className="text-sm font-bold text-white uppercase tracking-widest">Data Deletion</h3>
+                            </div>
+                            <p className="text-sm text-gray-500 leading-relaxed">
+                              You maintain full ownership of your data. Deleting a project permanently and immediately removes all associated code, files, and chat logs from our production database.
+                            </p>
                           </div>
                         </div>
                       )}
