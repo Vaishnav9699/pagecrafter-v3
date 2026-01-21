@@ -11,6 +11,8 @@ import SettingsModal from './components/SettingsModal';
 import ApiKeyModal from './components/ApiKeyModal';
 import NewProjectModal from './components/NewProjectModal';
 import UserMenu from './components/UserMenu';
+import PPTPanel from './components/PPTPanel';
+import PPTPreview from './components/PPTPreview';
 import {
   getProjects,
   createProject as createProjectInDb,
@@ -104,6 +106,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [, setIsInitialLoading] = useState(true);
   const [activeView, setActiveView] = useState<string>('dashboard');
+  const [pptSlides, setPptSlides] = useState<any[]>([]);
+  const [isPPTLoading, setIsPPTLoading] = useState(false);
   const [settingsTab, setSettingsTab] = useState<string>('Account');
   const [mobileView, setMobileView] = useState<'chat' | 'preview'>('chat'); // Mobile toggle between chat and preview
   const [generatedPages, setGeneratedPages] = useState<Record<string, { title: string; html: string; css: string; js: string; }> | undefined>(undefined);
@@ -615,7 +619,42 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
           onMouseEnter={() => setSidebarCollapsed(true)}
           onMouseLeave={() => setSidebarCollapsed(false)}
         >
-          {activeView !== 'chat' ? (
+          {activeView === 'chat' ? (
+            /* Chat View */
+            <div className={`flex flex-col md:flex-row flex-1 relative w-full h-full overflow-hidden`}>
+              <div className={`${mobileView === 'chat' ? 'flex' : 'hidden'} md:flex flex-col w-full ${hasGeneratedCode || isLoading ? 'md:w-1/2' : 'max-w-5xl mx-auto'} h-full overflow-hidden transition-all duration-300`}>
+                <ChatPanel
+                  onCodeGenerated={handleCodeGeneration}
+                  onLoadingChange={setIsLoading}
+                  currentProject={currentProject}
+                  onMessagesUpdate={handleMessagesUpdate}
+                  onCodeUpdate={handleCodeUpdate}
+                  onShowSettings={() => setSettingsOpen(true)}
+                  onShowHistory={() => {/* TODO: Show history modal */ }}
+                  onBack={() => setActiveView('dashboard')}
+                />
+              </div>
+              {(hasGeneratedCode || isLoading) && (
+                <div className={`${mobileView === 'preview' ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-1/2 h-full overflow-hidden border-l ${theme === 'dark' ? 'border-gray-800' : 'border-gray-200'}`}>
+                  <PreviewPanel code={generatedCode} pages={generatedPages} isVisible={hasGeneratedCode} isLoading={isLoading} />
+                </div>
+              )}
+            </div>
+          ) : activeView === 'ppt' ? (
+            /* PPT View */
+            <div className="flex flex-col md:flex-row flex-1 relative w-full h-full overflow-hidden">
+              <div className={`flex flex-col w-full md:w-1/3 h-full overflow-hidden transition-all duration-300 border-r ${theme === 'dark' ? 'border-gray-800' : 'border-gray-200'}`}>
+                <PPTPanel
+                  onPPTGenerated={setPptSlides}
+                  onLoadingChange={setIsPPTLoading}
+                  onBack={() => setActiveView('dashboard')}
+                />
+              </div>
+              <div className="flex flex-col flex-1 h-full overflow-hidden">
+                <PPTPreview slides={pptSlides} isLoading={isPPTLoading} />
+              </div>
+            </div>
+          ) : (
             /* Main Content Views */
             <div className={`flex-1 flex flex-col relative overflow-y-auto ${theme === 'dark' ? 'bg-[#0f1117]' : 'bg-gray-50'}`}>
               <div className="flex-1 p-4 sm:p-6 md:p-8">
@@ -647,7 +686,7 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                       </div>
 
                       {/* Mode Selection Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto w-full px-4">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto w-full px-4">
                         <button
                           onClick={() => handleNewProject(false)}
                           className="group relative flex flex-col items-center p-10 rounded-[2.5rem] bg-[#1a1c23]/60 backdrop-blur-md border border-white/5 hover:border-indigo-500/50 transition-all duration-500 shadow-2xl hover:-translate-y-2"
@@ -656,8 +695,8 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                           <div className="w-20 h-20 rounded-3xl bg-indigo-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner">
                             <svg className="w-10 h-10 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                           </div>
-                          <h3 className="text-2xl font-black text-white mb-2">Basic Mode</h3>
-                          <p className="text-gray-500 text-sm font-medium">Quick AI generation for simple landing pages</p>
+                          <h3 className="text-2xl font-black text-white mb-2 text-center">Basic Mode</h3>
+                          <p className="text-gray-500 text-sm font-medium text-center">Quick AI generation for landing pages</p>
                         </button>
 
                         <button
@@ -668,14 +707,28 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                           <div className="w-20 h-20 rounded-3xl bg-purple-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner">
                             <svg className="w-10 h-10 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
                           </div>
-                          <h3 className="text-2xl font-black text-white mb-2">Advanced Mode</h3>
-                          <p className="text-gray-500 text-sm font-medium">Full control over components and logic</p>
+                          <h3 className="text-2xl font-black text-white mb-2 text-center">Advanced Mode</h3>
+                          <p className="text-gray-500 text-sm font-medium text-center">Full control over components</p>
+                        </button>
+
+                        <button
+                          onClick={() => setActiveView('ppt')}
+                          className="group relative flex flex-col items-center p-10 rounded-[2.5rem] bg-[#1a1c23]/60 backdrop-blur-md border border-white/5 hover:border-orange-500/50 transition-all duration-500 shadow-2xl hover:-translate-y-2"
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-br from-orange-600/5 to-transparent rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                          <div className="w-20 h-20 rounded-3xl bg-orange-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner">
+                            <svg className="w-10 h-10 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2 3h20M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3m4 18 5-5 5 5m-5-5v5" />
+                            </svg>
+                          </div>
+                          <h3 className="text-2xl font-black text-white mb-2 text-center">PPT Make</h3>
+                          <p className="text-gray-500 text-sm font-medium text-center">Create stunning presentations with AI</p>
                         </button>
                       </div>
 
                       {/* Recent Projects Minimalist Grid */}
                       {projects.length > 0 && (
-                        <div className="max-w-5xl mx-auto w-full px-4 space-y-6">
+                        <div className="max-w-6xl mx-auto w-full px-4 space-y-6">
                           <div className="flex items-center justify-between">
                             <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.3em]">Recent Projects</h3>
                             <button onClick={() => setActiveView('projects')} className="text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:text-white transition-colors">View All</button>
@@ -1365,69 +1418,15 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                       )}
                     </div>
                   )}
-
                 </div>
               </div>
             </div>
-          ) : (
-            <>
-              {/* Chat Panel - Show based on mobile view state */}
-              <div className={`${mobileView === 'chat' ? 'flex' : 'hidden'} md:flex flex-col w-full ${hasGeneratedCode || isLoading ? 'md:w-1/2' : 'max-w-5xl mx-auto'} h-full overflow-hidden transition-all duration-300`}>
-                <ChatPanel
-                  onCodeGenerated={handleCodeGeneration}
-                  onLoadingChange={setIsLoading}
-                  currentProject={currentProject}
-                  onMessagesUpdate={handleMessagesUpdate}
-                  onCodeUpdate={handleCodeUpdate}
-                  onShowSettings={() => setSettingsOpen(true)}
-                  onShowHistory={() => {/* TODO: Show history modal */ }}
-                  onBack={() => setActiveView('dashboard')}
-                />
-              </div>
-
-              {/* PreviewPanel - Show only when generating or generated */}
-              {(hasGeneratedCode || isLoading) && (
-                <div className={`${mobileView === 'preview' ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-1/2 h-full overflow-hidden border-l ${theme === 'dark' ? 'border-gray-800' : 'border-gray-200'}`}>
-                  <PreviewPanel code={generatedCode} pages={generatedPages} isVisible={hasGeneratedCode} isLoading={isLoading} />
-                </div>
-              )}
-
-              {/* Mobile Toggle Button - Fixed and visible in both chat and preview */}
-              {hasGeneratedCode && (
-                <div className={`md:hidden fixed right-4 z-50 transition-all duration-300 ${mobileView === 'chat' ? 'bottom-24' : 'bottom-6'}`}>
-                  <button
-                    onClick={() => setMobileView(mobileView === 'chat' ? 'preview' : 'chat')}
-                    className={`flex items-center space-x-2 px-5 py-3.5 rounded-full shadow-2xl transition-transform transform active:scale-95 ${theme === 'dark'
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/50'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/50'
-                      }`}
-                  >
-                    {mobileView === 'chat' ? (
-                      <>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        <span className="text-sm font-semibold">Preview</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                        <span className="text-sm font-semibold">Chat</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-            </>
           )}
-        </div >
-      </div >
+        </div>
+      </div>
 
       {/* Settings Modal */}
-      < SettingsModal
+      <SettingsModal
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         onExportCode={handleExportCode}
@@ -1446,6 +1445,6 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
         initialAdvanced={isNewProjectAdvanced}
         showAdvancedOption={isNewProjectAdvanced}
       />
-    </div >
+    </div>
   );
 }
