@@ -108,7 +108,7 @@ export default function SettingsModal({ isOpen, onClose, onExportCode }: Setting
                     </div>
                     <div>
                       <p className={`text-lg font-black tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>PageCrafter AI</p>
-                      <p className={`text-xs font-bold ${theme === 'dark' ? 'text-indigo-400' : 'text-indigo-600'}`}>Version 2.0.0 "Aurora"</p>
+                      <p className={`text-xs font-bold ${theme === 'dark' ? 'text-indigo-400' : 'text-indigo-600'}`}>Version 2.0.0 &quot;Aurora&quot;</p>
                     </div>
                   </div>
                   <p className={`text-sm font-medium leading-relaxed ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -221,7 +221,7 @@ export default function SettingsModal({ isOpen, onClose, onExportCode }: Setting
                       <p className={`font-black text-sm uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>AI Usage Policy</p>
                     </div>
                     <p className="text-sm font-medium leading-relaxed text-gray-500">
-                      We use Google Gemini to generate code. Your prompts are sent directly to Google's API. No personal data from your profile is shared with AI providers unless explicitly part of your prompt.
+                      We use Google Gemini to generate code. Your prompts are sent directly to Google&apos;s API. No personal data from your profile is shared with AI providers unless explicitly part of your prompt.
                     </p>
                   </div>
 
