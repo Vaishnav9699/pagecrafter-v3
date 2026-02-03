@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+import HexagonalLoader from './HexagonalLoader';
 
 interface PreviewPanelProps {
   code: {
@@ -18,6 +19,17 @@ export default function PreviewPanel({ code, pages, isVisible, isLoading = false
   const { theme } = useTheme();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [activePage, setActivePage] = useState('home');
+  const [showPreview, setShowPreview] = useState(!isLoading);
+
+  // Sync showPreview with isLoading with a delay
+  useEffect(() => {
+    if (isLoading) {
+      setShowPreview(false);
+    } else {
+      const timer = setTimeout(() => setShowPreview(true), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
 
   // Function to update iframe content
   const updateIframeContent = () => {
@@ -93,8 +105,7 @@ export default function PreviewPanel({ code, pages, isVisible, isLoading = false
   }, [pages]);
 
   return (
-    <div className={`flex flex-col h-full transition-all duration-500 ease-in-out ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
-      } ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'} border-t md:border-t-0 md:border-l ${theme === 'dark' ? 'border-gray-800/50' : 'border-gray-200/50'} overflow-hidden`}>
+    <div className={`flex flex-col h-full ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'} border-t md:border-t-0 md:border-l ${theme === 'dark' ? 'border-gray-800/50' : 'border-gray-200/50'} overflow-hidden`}>
 
       {/* Header */}
       <div className={`flex items-center justify-between px-4 py-3 border-b backdrop-blur-xl ${theme === 'dark' ? 'bg-gray-900/80 border-gray-800/50' : 'bg-white/80 border-gray-200/50'}`}>
@@ -144,32 +155,28 @@ export default function PreviewPanel({ code, pages, isVisible, isLoading = false
       )}
 
       {/* Content */}
-      <div className="flex-1 relative overflow-hidden">
-        {isLoading ? (
-          <div className={`w-full h-full flex flex-col items-center justify-center p-8 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}>
-            <div className="w-full max-w-md space-y-6">
-              {/* Skeleton Header */}
-              <div className="space-y-3">
-                <div className={`h-8 rounded-xl shimmer ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'} w-3/4`}></div>
-                <div className={`h-4 rounded-lg shimmer ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'} w-full`}></div>
-                <div className={`h-4 rounded-lg shimmer ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'} w-5/6`}></div>
-              </div>
-
-              {/* Skeleton Content */}
-              <div className="space-y-4 pt-4">
-                <div className={`h-4 rounded-lg shimmer ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'}`}></div>
-                <div className={`h-4 rounded-lg shimmer ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'}`}></div>
-                <div className={`h-40 rounded-xl shimmer ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'}`}></div>
-                <div className={`h-4 rounded-lg shimmer ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'}`}></div>
-              </div>
-
-              {/* Loading Indicator */}
-              <div className="flex flex-col items-center justify-center pt-6 gap-3">
-                <div className="relative w-12 h-12">
-                  <div className="absolute inset-0 rounded-full border-3 border-gray-300"></div>
-                  <div className="absolute inset-0 rounded-full border-3 border-transparent border-t-indigo-600 animate-spin"></div>
+      <div className="flex-1 relative overflow-hidden bg-black">
+        {isLoading || !showPreview ? (
+          <div className={`absolute inset-0 z-40 flex flex-col items-center justify-center pointer-events-none transition-opacity duration-700 ${!isLoading && showPreview ? 'opacity-0' : 'opacity-100'}`}>
+            <div className="flex flex-col items-center justify-center gap-6 p-8 rounded-3xl backdrop-blur-md bg-black/40 border border-white/5 animate-slide-up">
+              <HexagonalLoader size={100} color="#6366f1" />
+              <div className="flex flex-col items-center gap-3 text-center">
+                <span className="text-3xl font-black text-white tracking-tighter uppercase italic animate-pulse">
+                  Querying Global Intelligence
+                </span>
+                <div className="flex items-center gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" />
+                  <span className="text-xs font-black text-indigo-400 uppercase tracking-[0.4em] opacity-80">
+                    Sourcing related assets & documentation
+                  </span>
                 </div>
-                <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Generating preview...</span>
+                <div className="flex gap-1 mt-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-1 w-8 rounded-full bg-white/10 overflow-hidden">
+                      <div className="h-full bg-indigo-500 animate-[loading-bar_1.5s_infinite]" style={{ animationDelay: `${i * 0.2}s` }} />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -200,16 +207,22 @@ export default function PreviewPanel({ code, pages, isVisible, isLoading = false
             </div>
           </div>
         ) : (
-          <div className="relative w-full h-full">
+          <div className="relative w-full h-full animate-in fade-in zoom-in-95 duration-1000">
             <iframe
               ref={iframeRef}
-              className="w-full h-full border-0 bg-white rounded-lg"
+              className="w-full h-full border-0 bg-white"
               title="Preview"
               sandbox="allow-scripts allow-same-origin"
             />
           </div>
         )}
       </div>
+      <style jsx>{`
+        @keyframes loading-bar {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
     </div>
   );
 }

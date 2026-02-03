@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+@keyframes draw-line {
+  from {
+    stroke-dashoffset: 100;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-draw-line {
+  animation: draw-line 2s ease-out forwards;
+}
+
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -370,8 +385,9 @@ body::before {
 }
 
 /* Modal specific scrollbar */
+/* Premium Minimalist Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 5px;
+  width: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -379,10 +395,17 @@ body::before {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.2);
-  border-radius: 20px;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 10px;
+  transition: background 0.3s ease;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.4);
+  background: rgba(99, 102, 241, 0.3);
+}
+
+/* Ensure scrolling works even without visible bar */
+.no-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.1) transparent;
 }

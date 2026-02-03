@@ -15,6 +15,8 @@ import PPTPanel from './components/PPTPanel';
 import PPTPreview from './components/PPTPreview';
 import PDFPanel from './components/PDFPanel';
 import PDFPreview from './components/PDFPreview';
+import DashboardBackground from './components/DashboardBackground';
+import HolographicCard from './components/HolographicCard';
 import {
   getProjects,
   createProject as createProjectInDb,
@@ -441,7 +443,7 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
   };
 
   return (
-    <div className={`relative flex flex-col h-screen overflow-hidden ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'}`}>
+    <div className={`relative flex flex-col h-screen overflow-hidden ${theme === 'dark' ? 'bg-[#0a0a0c]' : 'bg-gray-100'}`}>
       {/* Header */}
       <header className={`fixed top-0 left-0 right-0 h-[60px] flex items-center justify-between px-4 border-b ${theme === 'dark' ? 'bg-[#0f1117] border-gray-800' : 'bg-white border-gray-200'} z-[100] shadow-sm`}>
         <div className="flex items-center gap-8 flex-1">
@@ -619,7 +621,7 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
 
         {/* Main Content */}
         <div
-          className="flex flex-col md:flex-row flex-1 relative w-full"
+          className="flex flex-col md:flex-row flex-1 relative w-full overflow-hidden"
           onMouseEnter={() => setSidebarCollapsed(true)}
           onMouseLeave={() => setSidebarCollapsed(false)}
         >
@@ -640,7 +642,7 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
               </div>
               {(hasGeneratedCode || isLoading) && (
                 <div className={`${mobileView === 'preview' ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-1/2 h-full overflow-hidden border-l ${theme === 'dark' ? 'border-gray-800' : 'border-gray-200'}`}>
-                  <PreviewPanel code={generatedCode} pages={generatedPages} isVisible={hasGeneratedCode} isLoading={isLoading} />
+                  <PreviewPanel code={generatedCode} pages={generatedPages} isVisible={hasGeneratedCode || isLoading} isLoading={isLoading} />
                 </div>
               )}
             </div>
@@ -674,27 +676,54 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
             </div>
           ) : (
             /* Main Content Views */
-            <div className={`flex-1 flex flex-col relative overflow-y-auto ${theme === 'dark' ? 'bg-[#0f1117]' : 'bg-gray-50'}`}>
-              <div className="flex-1 p-4 sm:p-6 md:p-8">
-                <div className="max-w-6xl mx-auto">
+            <div className={`flex-1 flex flex-col relative overflow-y-auto ${theme === 'dark' ? 'bg-[#0a0a0c]' : 'bg-gray-50'} custom-scrollbar scroll-smooth`}>
+              <div className="flex-1">
+                <div className="w-full">
+
+                  {/* Mobile Only Quick Access Nav - Persistent across views */}
+                  <div className="md:hidden flex overflow-x-auto no-scrollbar gap-4 px-4 py-4 border-b border-white/5 bg-black/20 backdrop-blur-md sticky top-0 z-[60]">
+                    {[
+                      { id: 'dashboard', label: 'Dashboard' },
+                      { id: 'projects', label: 'Projects' },
+                      { id: 'community', label: 'Community' },
+                      { id: 'templates', label: 'Templates' },
+                      { id: 'assets', label: 'Assets' }
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveView(item.id)}
+                        className={`whitespace-nowrap px-4 py-2 rounded-full border transition-all text-[10px] font-black uppercase tracking-widest ${activeView === item.id
+                          ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20'
+                          : 'bg-white/5 border-white/10 text-white/70 active:bg-white/10'
+                          }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
 
                   {activeView === 'dashboard' && (
-                    <div className="flex flex-col h-full animate-fade-in gap-12 pb-10">
-                      {/* Dashboard Hero / AI Matchmaker */}
-                      <div className="flex flex-col items-center text-center gap-8 pt-6">
-                        <div className="space-y-2">
-                          <span className="text-xs font-black text-indigo-400 uppercase tracking-[0.3em]">Quick Start</span>
-                          <h2 className="text-5xl font-black text-white tracking-tighter">What will you build today?</h2>
+                    <div className="relative flex flex-col min-h-full animate-fade-in gap-4 md:gap-8 pb-20">
+                      <DashboardBackground />
+
+                      <div className="relative z-10 flex flex-col items-center text-center gap-6 pt-12 md:pt-16 lg:pt-20 px-4 md:px-8">
+                        <div className="space-y-4">
+                          <span className="text-[10px] md:text-sm font-black text-indigo-400 uppercase tracking-[0.5em] block mb-2 font-mono opacity-80">CONNECTED.SYSTEM_CORE</span>
+                          <h2 className="text-2xl sm:text-4xl md:text-5xl lg:text-7xl font-black text-white tracking-[0.15em] md:tracking-[0.4em] drop-shadow-[0_0_20px_rgba(99,102,241,0.4)]">
+                            <span className="bg-gradient-to-br from-white via-indigo-100 to-indigo-400 bg-clip-text text-transparent font-mono uppercase inline-block scale-90 sm:scale-100">
+                              &lt; DESIGN_CORE /&gt;
+                            </span>
+                          </h2>
                         </div>
 
-                        <div className="w-full max-w-[700px] relative group">
-                          <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 to-purple-500 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
-                          <div className="relative flex items-center bg-[#0f1117] border border-white/10 rounded-2xl px-5 py-4 shadow-2xl">
-                            <svg className="w-5 h-5 text-indigo-400 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                        <div className="w-full max-w-[600px] relative group">
+                          <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 to-purple-500 rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-1000"></div>
+                          <div className="relative flex items-center bg-black/20 backdrop-blur-md border border-white/5 rounded-2xl px-5 py-3.5 shadow-2xl">
+                            <svg className="w-4 h-4 text-indigo-400 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                             <input
                               type="text"
-                              placeholder="Describe your vision (e.g., A minimalist furniture store)..."
-                              className="flex-1 bg-transparent border-none outline-none text-white text-base placeholder-gray-500 font-medium tracking-tight"
+                              placeholder="Describe your vision..."
+                              className="flex-1 bg-transparent border-none outline-none text-white text-sm placeholder-gray-500 font-medium tracking-tight"
                             />
                             <div className="flex items-center gap-2 pl-4 border-l border-white/5">
                               <svg className="w-4 h-4 text-indigo-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
@@ -704,63 +733,70 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                       </div>
 
                       {/* Mode Selection Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto w-full px-4">
-                        <button
+                      <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 w-full px-8 md:px-20 py-16">
+                        <HolographicCard
+                          title="Website Creation"
+                          description="Rapid AI Generation"
+                          color="#818cf8"
+                          type="website"
                           onClick={() => handleNewProject(false)}
-                          className="group relative flex flex-col items-center p-10 rounded-[2.5rem] bg-[#1a1c23]/60 backdrop-blur-md border border-white/5 hover:border-indigo-500/50 transition-all duration-500 shadow-2xl hover:-translate-y-2"
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/5 to-transparent rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                          <div className="w-20 h-20 rounded-3xl bg-indigo-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner">
-                            <svg className="w-10 h-10 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                          </div>
-                          <h3 className="text-2xl font-black text-white mb-2 text-center">Basic Mode</h3>
-                          <p className="text-gray-500 text-sm font-medium text-center">Quick AI generation for landing pages</p>
-                        </button>
-
-                        <button
-                          onClick={() => handleNewProject(true)}
-                          className="group relative flex flex-col items-center p-10 rounded-[2.5rem] bg-[#1a1c23]/60 backdrop-blur-md border border-white/5 hover:border-purple-500/50 transition-all duration-500 shadow-2xl hover:-translate-y-2"
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-br from-purple-600/5 to-transparent rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                          <div className="w-20 h-20 rounded-3xl bg-purple-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner">
-                            <svg className="w-10 h-10 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
-                          </div>
-                          <h3 className="text-2xl font-black text-white mb-2 text-center">Advanced Mode</h3>
-                          <p className="text-gray-500 text-sm font-medium text-center">Full control over components</p>
-                        </button>
-
-                        <button
+                        />
+                        <HolographicCard
+                          title="PPT Make"
+                          description="Futuristic Presentations"
+                          color="#fb923c"
+                          type="ppt"
                           onClick={() => setActiveView('ppt')}
-                          className="group relative flex flex-col items-center p-10 rounded-[2.5rem] bg-[#1a1c23]/60 backdrop-blur-md border border-white/5 hover:border-orange-500/50 transition-all duration-500 shadow-2xl hover:-translate-y-2"
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-br from-orange-600/5 to-transparent rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                          <div className="w-20 h-20 rounded-3xl bg-orange-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner">
-                            <svg className="w-10 h-10 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2 3h20M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3m4 18 5-5 5 5m-5-5v5" />
-                            </svg>
-                          </div>
-                          <h3 className="text-2xl font-black text-white mb-2 text-center">PPT Make</h3>
-                          <p className="text-gray-500 text-sm font-medium text-center">Create stunning presentations with AI</p>
-                        </button>
-
-                        <button
+                        />
+                        <HolographicCard
+                          title="PDF Make"
+                          description="Digital Documents"
+                          color="#ef4444"
+                          type="pdf"
                           onClick={() => setActiveView('pdf')}
-                          className="group relative flex flex-col items-center p-10 rounded-[2.5rem] bg-[#1a1c23]/60 backdrop-blur-md border border-white/5 hover:border-red-500/50 transition-all duration-500 shadow-2xl hover:-translate-y-2"
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-br from-red-600/5 to-transparent rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                          <div className="w-20 h-20 rounded-3xl bg-red-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner">
-                            <svg className="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                            </svg>
+                        />
+                        <HolographicCard
+                          title="Advanced Mode"
+                          description="Full Core Control"
+                          color="#a855f7"
+                          type="advanced"
+                          onClick={() => handleNewProject(true)}
+                        />
+                      </div>
+
+                      {/* System Connectivity / Additional Features */}
+                      <div className="relative z-10 w-full px-4 md:px-12 pb-10">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <div className="p-6 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-md">
+                            <div className="flex items-center gap-3 mb-4">
+                              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                              <span className="text-xs font-black text-white/60 uppercase tracking-widest font-mono">Neural_Link</span>
+                            </div>
+                            <h4 className="text-white font-bold mb-2">99.9% AI Accuracy</h4>
+                            <p className="text-gray-500 text-xs uppercase leading-relaxed font-bold">Optimized for high-speed content synthesis and structural integrity.</p>
                           </div>
-                          <h3 className="text-2xl font-black text-white mb-2 text-center">PDF Make</h3>
-                          <p className="text-gray-500 text-sm font-medium text-center">Generate professional documents with AI</p>
-                        </button>
+                          <div className="p-6 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-md">
+                            <div className="flex items-center gap-3 mb-4">
+                              <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                              <span className="text-xs font-black text-white/60 uppercase tracking-widest font-mono">Cloud_Core</span>
+                            </div>
+                            <h4 className="text-white font-bold mb-2">Distributed Rendering</h4>
+                            <p className="text-gray-500 text-xs uppercase leading-relaxed font-bold">Instant live preview synced across all nodes in the PageCrafter mesh.</p>
+                          </div>
+                          <div className="p-6 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-md">
+                            <div className="flex items-center gap-3 mb-4">
+                              <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+                              <span className="text-xs font-black text-white/60 uppercase tracking-widest font-mono">Security_Layer</span>
+                            </div>
+                            <h4 className="text-white font-bold mb-2">AES-256 Encryption</h4>
+                            <p className="text-gray-500 text-xs uppercase leading-relaxed font-bold">All design prompts and generated assets are locked under enterprise-grade protocols.</p>
+                          </div>
+                        </div>
                       </div>
 
                       {/* Recent Projects Minimalist Grid */}
                       {projects.length > 0 && (
-                        <div className="max-w-6xl mx-auto w-full px-4 space-y-6">
+                        <div className="relative z-10 w-full px-4 md:px-12 space-y-6">
                           <div className="flex items-center justify-between">
                             <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.3em]">Recent Projects</h3>
                             <button onClick={() => setActiveView('projects')} className="text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:text-white transition-colors">View All</button>
@@ -1448,6 +1484,60 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                           </div>
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {activeView === 'community' && (
+                    <div className="p-8 text-center animate-fade-in">
+                      <div className="w-20 h-20 rounded-3xl bg-emerald-600/10 flex items-center justify-center mb-6 mx-auto">
+                        <svg className="w-10 h-10 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                      </div>
+                      <h2 className="text-3xl font-bold text-white mb-4">AI Community Hub</h2>
+                      <p className="text-gray-400 max-w-md mx-auto mb-8 font-mono text-sm uppercase tracking-widest">Access shared neural architectures from creators worldwide.</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-4xl mx-auto">
+                        {['Space Portal', 'Grid Engine', 'Cyber Portfolio'].map((item) => (
+                          <div key={item} className="p-6 rounded-2xl bg-white/5 border border-white/10 text-left">
+                            <h4 className="text-white font-bold mb-1">{item}</h4>
+                            <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Shared by System_Admin</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {activeView === 'templates' && (
+                    <div className="p-8 text-center animate-fade-in">
+                      <div className="w-20 h-20 rounded-3xl bg-blue-600/10 flex items-center justify-center mb-6 mx-auto">
+                        <svg className="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" /></svg>
+                      </div>
+                      <h2 className="text-3xl font-bold text-white mb-4">DesignBlueprints</h2>
+                      <p className="text-gray-400 max-w-md mx-auto mb-8 font-mono text-sm uppercase tracking-widest">Base protocols for rapid deployment.</p>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-5xl mx-auto text-left">
+                        {['SaaS Hero', 'Glass Storefront', 'Terminal blog', 'Modern Portfolio', 'App Landing', 'Doc Engine'].map((item) => (
+                          <div key={item} className="p-4 rounded-xl bg-white/5 border border-white/5 hover:border-blue-500/30 transition-all cursor-pointer">
+                            <div className="w-full aspect-video bg-blue-500/10 rounded-lg mb-3" />
+                            <span className="text-xs font-bold text-white/80">{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {activeView === 'assets' && (
+                    <div className="p-8 text-center animate-fade-in">
+                      <div className="w-20 h-20 rounded-3xl bg-purple-600/10 flex items-center justify-center mb-6 mx-auto">
+                        <svg className="w-10 h-10 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      </div>
+                      <h2 className="text-3xl font-bold text-white mb-4">Neural Assets</h2>
+                      <p className="text-gray-400 max-w-md mx-auto mb-8 font-mono text-sm uppercase tracking-widest">Media and component libraries generated for your system.</p>
+                      <div className="flex flex-wrap gap-4 justify-center">
+                        {['Icons_V1', 'Main_Logos', 'Backgrounds_3D', 'Typefaces'].map((item) => (
+                          <div key={item} className="px-6 py-10 w-40 rounded-3xl bg-white/5 border border-white/5 flex flex-col items-center gap-3 hover:bg-white/10 transition-all">
+                            <div className="w-8 h-8 rounded-lg bg-purple-500/20" />
+                            <span className="text-[10px] font-black uppercase text-gray-400">{item}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

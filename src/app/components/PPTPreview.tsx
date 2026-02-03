@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Share2, Download, Globe, Link2, ChevronDown } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import HexagonalLoader from './HexagonalLoader';
 
 interface Slide {
     title: string;
@@ -61,9 +62,12 @@ export default function PPTPreview({ slides, isLoading }: PPTPreviewProps) {
 
     if (isLoading && slides.length === 0) {
         return (
-            <div className="flex-1 flex flex-col items-center justify-center bg-gray-900/50 backdrop-blur-sm">
-                <div className="w-16 h-16 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin mb-4" />
-                <span className="text-orange-500 font-bold animate-pulse">Designing your presentation...</span>
+            <div className="flex-1 flex flex-col items-center justify-center bg-gray-900/50 backdrop-blur-md gap-8">
+                <HexagonalLoader size={120} color="#f97316" />
+                <div className="flex flex-col items-center gap-2">
+                    <span className="text-2xl font-black text-white tracking-tight">Designing Presentation</span>
+                    <span className="text-orange-500 font-bold animate-pulse text-sm uppercase tracking-widest">AI is crafting your slides...</span>
+                </div>
             </div>
         );
     }

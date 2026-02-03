@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Share2, Download, Globe, Link2, ChevronDown, FileText } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import HexagonalLoader from './HexagonalLoader';
 
 interface PDFSection {
     heading: string;
@@ -55,9 +56,12 @@ export default function PDFPreview({ document: doc, isLoading }: PDFPreviewProps
 
     if (isLoading && !doc) {
         return (
-            <div className="flex-1 flex flex-col items-center justify-center bg-gray-900/50 backdrop-blur-sm">
-                <div className="w-16 h-16 border-4 border-red-500/20 border-t-red-500 rounded-full animate-spin mb-4" />
-                <span className="text-red-500 font-bold animate-pulse">Drafting your document...</span>
+            <div className="flex-1 flex flex-col items-center justify-center bg-gray-900/50 backdrop-blur-md gap-8">
+                <HexagonalLoader size={120} color="#ef4444" />
+                <div className="flex flex-col items-center gap-2">
+                    <span className="text-2xl font-black text-white tracking-tight">Drafting Document</span>
+                    <span className="text-red-500 font-bold animate-pulse text-sm uppercase tracking-widest">AI is writing your content...</span>
+                </div>
             </div>
         );
     }
