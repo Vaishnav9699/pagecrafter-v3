@@ -491,14 +491,14 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
               {/* Theme Toggle */}
               <div className={`flex items-center p-1 rounded-2xl ${theme === 'dark' ? 'bg-[#1a1c23]' : 'bg-gray-100'} border border-gray-800/30`}>
                 <button
-                  onClick={() => theme === 'light' && toggleTheme()}
-                  className={`p-1.5 rounded-xl transition-all ${theme === 'dark' ? 'bg-white shadow-xl text-indigo-600' : 'text-gray-500 hover:text-gray-900'}`}
+                  onClick={() => theme === 'dark' && toggleTheme()}
+                  className={`p-1.5 rounded-xl transition-all ${theme === 'light' ? 'bg-white shadow-xl text-indigo-600' : 'text-gray-500 hover:text-gray-900'}`}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
                 </button>
                 <button
-                  onClick={() => theme === 'dark' && toggleTheme()}
-                  className={`p-1.5 rounded-xl transition-all ${theme === 'light' ? 'bg-white shadow-xl text-indigo-600' : 'text-gray-500 hover:text-white'}`}
+                  onClick={() => theme === 'light' && toggleTheme()}
+                  className={`p-1.5 rounded-xl transition-all ${theme === 'dark' ? 'bg-white shadow-xl text-indigo-600' : 'text-gray-500 hover:text-white'}`}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
                 </button>
@@ -1409,7 +1409,7 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                               <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Theme</h3>
                               <div className="flex bg-black/20 p-1 rounded-2xl border border-white/5">
                                 <button
-                                  onClick={() => theme !== 'dark' && toggleTheme()}
+                                  onClick={() => theme === 'light' && toggleTheme()}
                                   className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all ${theme === 'dark' ? 'bg-white/10 text-white shadow-xl' : 'text-gray-500 hover:text-gray-300'}`}
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
@@ -1417,7 +1417,7 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                                 </button>
                                 <button
                                   onClick={() => theme === 'dark' && toggleTheme()}
-                                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all ${theme !== 'dark' ? 'bg-white/10 text-white shadow-xl' : 'text-gray-500 hover:text-gray-300'}`}
+                                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all ${theme === 'light' ? 'bg-white/10 text-white shadow-xl' : 'text-gray-500 hover:text-gray-300'}`}
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
                                   <span className="text-xs font-bold">Light</span>
