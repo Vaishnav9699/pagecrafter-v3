@@ -409,3 +409,258 @@ body::before {
   scrollbar-width: thin;
   scrollbar-color: rgba(99, 102, 241, 0.1) transparent;
 }
+/* ===================================
+   STUDIO PREMIUM BADGE
+   =================================== */
+
+.studio-premium-card {
+  position: relative;
+  width: 100%;
+  max-width: 700px;
+  padding: 32px 40px;
+  background: linear-gradient(135deg, #1a0a2e 0%, #0f0515 100%);
+  border: 2px solid;
+  border-image: linear-gradient(135deg, #a855f7, #6366f1, #8b5cf6) 1;
+  border-radius: 20px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 20px 60px rgba(168, 85, 247, 0.3),
+    0 0 0 1px rgba(168, 85, 247, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.studio-premium-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 
+    0 30px 80px rgba(168, 85, 247, 0.5),
+    0 0 100px rgba(168, 85, 247, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.studio-badge-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+
+.studio-premium-card:hover .studio-badge-glow {
+  opacity: 1;
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.1); opacity: 0.6; }
+}
+
+.studio-badge-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.studio-icon-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.studio-icon {
+  font-size: 64px;
+  display: block;
+  filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.8));
+  animation: floatIcon 3s ease-in-out infinite;
+}
+
+@keyframes floatIcon {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.studio-icon-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.4) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+  50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.8; }
+}
+
+.studio-text-wrapper {
+  flex: 1;
+}
+
+.studio-title {
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #ffffff 0%, #e9d5ff 50%, #c084fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  letter-spacing: -0.5px;
+}
+
+.studio-badge-label {
+  display: inline-block;
+  padding: 4px 12px;
+  background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 6px;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4); }
+  50% { box-shadow: 0 4px 20px rgba(168, 85, 247, 0.8); }
+}
+
+.studio-description {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 12px 0;
+  font-weight: 500;
+}
+
+.studio-features {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.studio-feature {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(168, 85, 247, 0.1);
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.studio-premium-card:hover .studio-feature {
+  background: rgba(168, 85, 247, 0.2);
+  border-color: rgba(168, 85, 247, 0.5);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.studio-arrow {
+  font-size: 32px;
+  color: #a855f7;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+
+.studio-premium-card:hover .studio-arrow {
+  transform: translateX(10px);
+  color: #c084fc;
+}
+
+.studio-shine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.7s;
+  pointer-events: none;
+}
+
+.studio-premium-card:hover .studio-shine {
+  left: 100%;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .studio-premium-card {
+    padding: 24px 28px;
+    max-width: 100%;
+  }
+  
+  .studio-title {
+    font-size: 24px;
+  }
+  
+  .studio-icon {
+    font-size: 48px;
+  }
+  
+  .studio-badge-content {
+    gap: 16px;
+  }
+  
+  .studio-arrow {
+    font-size: 24px;
+  }
+}
+
+/* ===================================
+   STUDIO HOLOGRAPHIC CARD (Updated)
+   =================================== */
+
+.studio-holo-card {
+  position: relative;
+  max-width: 700px;
+  width: 100%;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.studio-holo-card:hover {
+  transform: translateY(-4px);
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 3s infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .studio-holo-card .text-3xl {
+    font-size: 1.5rem;
+  }
+  
+  .studio-holo-card .w-16 {
+    width: 3rem;
+    height: 3rem;
+  }
+  
+  .studio-holo-card .p-8 {
+    padding: 1.5rem;
+  }
+}

@@ -732,36 +732,88 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                         </div>
                       </div>
 
-                      {/* Mode Selection Grid */}
-                      <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 w-full px-8 md:px-20 py-16">
-                        <HolographicCard
-                          title="Website Creation"
-                          description="Rapid AI Generation"
-                          color="#818cf8"
-                          type="website"
-                          onClick={() => handleNewProject(false)}
-                        />
-                        <HolographicCard
-                          title="PPT Make"
-                          description="Futuristic Presentations"
-                          color="#fb923c"
-                          type="ppt"
-                          onClick={() => setActiveView('ppt')}
-                        />
-                        <HolographicCard
-                          title="PDF Make"
-                          description="Digital Documents"
-                          color="#ef4444"
-                          type="pdf"
-                          onClick={() => setActiveView('pdf')}
-                        />
-                        <HolographicCard
-                          title="Advanced Mode"
-                          description="Full Core Control"
-                          color="#a855f7"
-                          type="advanced"
-                          onClick={() => handleNewProject(true)}
-                        />
+                      {/* Mode Selection - Centered Studio + Grid Below */}
+                      <div className="relative z-10 w-full px-8 md:px-20 py-16">
+                        {/* Premium Studio Badge - Large & Centered */}
+                        <div className="flex justify-center mb-12">
+                          <Link href="/studio" className="block">
+                            <div className="studio-holo-card group">
+                              {/* Holographic background effect */}
+                              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-blue-500/10 to-pink-500/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+
+                              {/* Main Card */}
+                              <div className="relative backdrop-blur-xl bg-black/40 border border-purple-500/30 rounded-2xl p-8 overflow-hidden group-hover:border-purple-400/50 transition-all duration-300">
+                                {/* Animated gradient overlay */}
+                                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-500/10 to-transparent animate-shimmer"></div>
+                                </div>
+
+                                {/* Content */}
+                                <div className="relative flex items-center gap-6">
+                                  {/* Icon */}
+                                  <div className="flex-shrink-0">
+                                    <div className="relative">
+                                      <div className="absolute inset-0 bg-purple-600 blur-xl opacity-60 group-hover:opacity-80 transition-opacity"></div>
+                                      <div className="relative w-20 h-20 flex items-center justify-center">
+                                        <svg className="w-16 h-16 text-purple-400 group-hover:text-purple-300 transition-colors" fill="currentColor" viewBox="0 0 24 24">
+                                          <path d="M3 3h7v7H3V3m11 0h7v7h-7V3M3 14h7v7H3v-7m11 0h7v7h-7v-7M4 4v5h5V4H4m11 0v5h5V4h-5M4 15v5h5v-5H4m11 0v5h5v-5h-5z" />
+                                        </svg>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Text Content */}
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-2">
+                                      <span className="px-3 py-1 text-xs font-bold bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full tracking-wider">PRO</span>
+                                      <h3 className="text-3xl font-bold bg-gradient-to-r from-purple-300 via-pink-300 to-purple-300 bg-clip-text text-transparent">
+                                        Studio Mode
+                                      </h3>
+                                    </div>
+                                    <p className="text-gray-300 mb-3 text-sm">Professional Visual Website Builder</p>
+                                    <div className="flex gap-3 flex-wrap">
+                                      <span className="text-xs text-purple-300 bg-purple-900/30 px-3 py-1 rounded-full border border-purple-500/30">✓ Drag & Drop</span>
+                                      <span className="text-xs text-purple-300 bg-purple-900/30 px-3 py-1 rounded-full border border-purple-500/30">✓ Live Preview</span>
+                                      <span className="text-xs text-purple-300 bg-purple-900/30 px-3 py-1 rounded-full border border-purple-500/30">✓ Export Code</span>
+                                    </div>
+                                  </div>
+
+                                  {/* Arrow */}
+                                  <div className="flex-shrink-0">
+                                    <svg className="w-8 h-8 text-purple-400 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                    </svg>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                        </div>
+
+                        {/* Other Modes - Grid Below */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
+                          <HolographicCard
+                            title="Website Creation"
+                            description="Rapid AI Generation"
+                            color="#818cf8"
+                            type="website"
+                            onClick={() => handleNewProject(false)}
+                          />
+                          <HolographicCard
+                            title="PPT Make"
+                            description="Futuristic Presentations"
+                            color="#fb923c"
+                            type="ppt"
+                            onClick={() => setActiveView('ppt')}
+                          />
+                          <HolographicCard
+                            title="PDF Make"
+                            description="Digital Documents"
+                            color="#ef4444"
+                            type="pdf"
+                            onClick={() => setActiveView('pdf')}
+                          />
+                        </div>
                       </div>
 
                       {/* System Connectivity / Additional Features */}
