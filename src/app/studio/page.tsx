@@ -18,17 +18,125 @@ export default function StudioPage() {
     ]);
 
     // Website State
-    const [sections, setSections] = useState<any[]>([
-        {
-            id: 'hero-1',
-            type: 'hero',
-            content: { title: 'Build Your Dream Website', description: 'Ultimate design tool for modern creators.' },
-            style: { padding: '80px 40px', background: 'linear-gradient(to bottom, #f9fafb, #fff)', color: '#1a1a1a', textAlign: 'center' }
-        }
-    ]);
+    const [activePageId, setActivePageId] = useState<string>('home');
+    const [pages, setPages] = useState<Record<string, any[]>>({
+        home: [
+            {
+                id: 'header-home',
+                type: 'header',
+                content: { logo: 'Brand', links: ['Home', 'Services', 'About', 'Dashboard'] },
+                style: { padding: '20px 40px', background: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f3f4f6' }
+            },
+            {
+                id: 'hero-1',
+                type: 'hero',
+                content: { title: 'Build Future-Ready Web Apps', description: 'The ultimate design intelligence platform for modern creators.' },
+                style: { padding: '100px 40px', background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)', color: '#1a1a1a', textAlign: 'center' }
+            },
+            {
+                id: 'features-1',
+                type: 'features',
+                content: { title: 'Why Choose Us' },
+                style: { padding: '80px 40px', background: '#ffffff' }
+            },
+            {
+                id: 'footer-home',
+                type: 'footer',
+                content: { text: "© 2024 PageCrafter. All rights reserved." },
+                style: { padding: '40px', background: '#111827', color: '#9ca3af', textAlign: 'center', fontSize: '14px' }
+            }
+        ],
+        services: [
+            {
+                id: 'header-services',
+                type: 'header',
+                content: { logo: 'Brand', links: ['Home', 'Services', 'About', 'Dashboard'] },
+                style: { padding: '20px 40px', background: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f3f4f6' }
+            },
+            {
+                id: 'services-hero',
+                type: 'hero',
+                content: { title: 'Our Services', description: 'Professional solutions for your business needs.' },
+                style: { padding: '60px 40px', background: '#f3f4f6', color: '#1a1a1a', textAlign: 'center' }
+            },
+            {
+                id: 'shop-1',
+                type: 'shop',
+                content: { title: 'Service Packages' },
+                style: { padding: '60px 40px', background: '#ffffff' }
+            },
+            {
+                id: 'footer-services',
+                type: 'footer',
+                content: { text: "© 2024 PageCrafter. All rights reserved." },
+                style: { padding: '40px', background: '#111827', color: '#9ca3af', textAlign: 'center', fontSize: '14px' }
+            }
+        ],
+        about: [
+            {
+                id: 'header-about',
+                type: 'header',
+                content: { logo: 'Brand', links: ['Home', 'Services', 'About', 'Dashboard'] },
+                style: { padding: '20px 40px', background: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f3f4f6' }
+            },
+            {
+                id: 'about-content',
+                type: 'content',
+                content: { title: 'About Us', text: 'We are a team of passionate developers and designers dedicated to building the best web experiences on the planet. Our mission is to empower creators.' },
+                style: { padding: '80px 40px', background: '#ffffff', maxWidth: '800px', margin: '0 auto', textAlign: 'center' }
+            },
+            {
+                id: 'stats-about',
+                type: 'stats',
+                content: {
+                    stats: [
+                        { label: 'Happy Clients', value: '500+' },
+                        { label: 'Projects Done', value: '120+' },
+                        { label: 'Awards', value: '15' }
+                    ]
+                },
+                style: { padding: '60px 40px', background: '#f8fafc' }
+            },
+            {
+                id: 'footer-about',
+                type: 'footer',
+                content: { text: "© 2024 PageCrafter. All rights reserved." },
+                style: { padding: '40px', background: '#111827', color: '#9ca3af', textAlign: 'center', fontSize: '14px' }
+            }
+        ],
+        dashboard: [
+            {
+                id: 'dash-header',
+                type: 'header',
+                content: { logo: 'Brand', links: ['Home', 'Services', 'About', 'Dashboard'] },
+                style: { padding: '20px 40px', background: '#1e293b', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
+            },
+            {
+                id: 'dash-stats',
+                type: 'stats',
+                content: {
+                    stats: [
+                        { label: 'Total Revenue', value: '$45,231.89' },
+                        { label: 'Active Users', value: '2,345' },
+                        { label: 'Bounce Rate', value: '24.5%' }
+                    ]
+                },
+                style: { padding: '40px', background: '#f1f5f9' }
+            },
+            {
+                id: 'dash-content',
+                type: 'content',
+                content: { title: 'Recent Activity', text: '• User John Doe purchased a subscription.\n• Ticket #4295 was resolved.\n• Server load normalized.' },
+                style: { padding: '40px', background: '#ffffff', borderRadius: '8px', margin: '20px 40px', border: '1px solid #e2e8f0' }
+            }
+        ]
+    });
 
     const updateSectionStyle = (id: string, newStyle: any) => {
-        setSections(prev => prev.map(s => s.id === id ? { ...s, style: { ...s.style, ...newStyle } } : s));
+        setPages(prev => ({
+            ...prev,
+            [activePageId]: prev[activePageId].map(s => s.id === id ? { ...s, style: { ...s.style, ...newStyle } } : s)
+        }));
     };
 
     const handleAiResponse = (input: string) => {
@@ -42,8 +150,11 @@ export default function StudioPage() {
                 content: { title: 'Our Featured Products' },
                 style: { padding: '40px', background: '#fff' }
             };
-            setSections(prev => [...prev, newSection]);
-            response = "I've added a premium Shop section to your website. You can now edit its styles in the right panel!";
+            setPages(prev => ({
+                ...prev,
+                [activePageId]: [...prev[activePageId], newSection]
+            }));
+            response = "I've added a premium Shop section to your current page.";
         } else if (lowerInput.includes('feature')) {
             const newSection = {
                 id: `features-${Date.now()}`,
@@ -51,17 +162,23 @@ export default function StudioPage() {
                 content: { title: 'Amazing Features' },
                 style: { padding: '40px', background: '#f9fafb' }
             };
-            setSections(prev => [...prev, newSection]);
+            setPages(prev => ({
+                ...prev,
+                [activePageId]: [...prev[activePageId], newSection]
+            }));
             response = "Added a Features section for you!";
-        } else if (lowerInput.includes('footer')) {
+        } else if (lowerInput.includes('contact')) {
             const newSection = {
-                id: `footer-${Date.now()}`,
-                type: 'footer',
-                content: { text: "© 2024 PageCrafter. All rights reserved." },
-                style: { padding: '20px', background: '#1a1a1a', color: '#fff', textAlign: 'center' }
+                id: `contact-${Date.now()}`,
+                type: 'content',
+                content: { title: 'Contact Us', text: 'Get in touch at hello@example.com' },
+                style: { padding: '40px', background: '#f0f9ff', textAlign: 'center' }
             };
-            setSections(prev => [...prev, newSection]);
-            response = "Footer added at the bottom.";
+            setPages(prev => ({
+                ...prev,
+                [activePageId]: [...prev[activePageId], newSection]
+            }));
+            response = "Added a Contact section.";
         }
 
         setTimeout(() => {
@@ -72,28 +189,95 @@ export default function StudioPage() {
     const handleMagicBuild = async (prompt: string) => {
         setIsMagicBuilding(true);
         const userMsg = { role: 'user', content: `Magic Build: ${prompt}` };
-        setMessages(prev => [...prev, userMsg, { role: 'assistant', content: '✨ Starting Magic Build... I am designing your entire website structure with multiple sections now.' }]);
+        setMessages(prev => [...prev, userMsg, { role: 'assistant', content: '✨ Starting Magic Build... Generating a complete multi-page website structure (Home, About, Services, Dashboard)...' }]);
 
-        try {
-            const response = await fetch('/api/studio/magic-build', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt })
-            });
-            const data = await response.json();
+        setTimeout(() => {
+            const lowerPrompt = prompt.toLowerCase();
+            let newPages;
 
-            if (data.sections) {
-                setSections(data.sections);
-                setMessages(prev => [...prev, { role: 'assistant', content: '✅ Magic Build complete! Your multi-section website is ready. You can now use the "Inspect" tool or the basic chat to edit specific parts.' }]);
+            if (lowerPrompt.includes('shop') || lowerPrompt.includes('store') || lowerPrompt.includes('commerce') || lowerPrompt.includes('sell')) {
+                // E-COMMERCE TEMPLATE
+                newPages = {
+                    home: [
+                        { id: 'h-head', type: 'header', content: { logo: 'LuxeStore', links: ['Home', 'Shop', 'About', 'Account'] }, style: { padding: '20px 40px', background: '#fff', borderBottom: '1px solid #eaeaea', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' } },
+                        { id: 'h-hero', type: 'hero', content: { title: 'Summer Collection 2024', description: 'Explore the new season arrivals with up to 40% off.' }, style: { padding: '140px 40px', background: 'linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url(https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80)', backgroundSize: 'cover', backgroundPosition: 'center', color: '#ffffff', textAlign: 'center', borderRadius: '0 0 20px 20px' } },
+                        { id: 'h-feat', type: 'shop', content: { title: 'Trending Now' }, style: { padding: '80px 40px', background: '#ffffff' } },
+                        { id: 'h-foot', type: 'footer', content: { text: "© 2024 LuxeStore Inc. All rights reserved." }, style: { padding: '60px 40px', background: '#111827', color: '#9ca3af', textAlign: 'center' } }
+                    ],
+                    shop: [
+                        { id: 's-head', type: 'header', content: { logo: 'LuxeStore', links: ['Home', 'Shop', 'About', 'Account'] }, style: { padding: '20px 40px', background: '#fff', borderBottom: '1px solid #eaeaea', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+                        { id: 's-hero', type: 'content', content: { title: 'Shop All', text: 'Filter by category, size, and color.' }, style: { padding: '60px 40px', background: '#f8fafc', textAlign: 'center' } },
+                        { id: 's-grid', type: 'shop', content: { title: 'Full Catalog' }, style: { padding: '40px', background: '#ffffff' } },
+                        { id: 's-foot', type: 'footer', content: { text: "© 2024 LuxeStore Inc." }, style: { padding: '40px', background: '#111827', color: '#9ca3af', textAlign: 'center' } }
+                    ],
+                    about: [
+                        { id: 'a-head', type: 'header', content: { logo: 'LuxeStore', links: ['Home', 'Shop', 'About', 'Account'] }, style: { padding: '20px 40px', background: '#fff', borderBottom: '1px solid #eaeaea', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+                        { id: 'a-hero', type: 'content', content: { title: 'Our Story', text: 'We believe in sustainable fashion and timeless design.' }, style: { padding: '100px 40px', background: '#fff', textAlign: 'center', maxWidth: '800px', margin: '0 auto' } },
+                        { id: 'a-stats', type: 'stats', content: { stats: [{ label: 'Stores', value: '12' }, { label: 'Customers', value: '50k+' }, { label: 'Since', value: '2015' }] }, style: { padding: '60px', background: '#f8fafc' } },
+                        { id: 'a-foot', type: 'footer', content: { text: "© 2024 LuxeStore Inc." }, style: { padding: '40px', background: '#111827', color: '#9ca3af', textAlign: 'center' } }
+                    ],
+                    account: [
+                        { id: 'ac-head', type: 'header', content: { logo: 'LuxeStore', links: ['Home', 'Shop', 'About', 'Account'] }, style: { padding: '20px 40px', background: '#fff', borderBottom: '1px solid #eaeaea', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+                        { id: 'ac-dash', type: 'content', content: { title: 'My Account', text: 'Welcome back, Vaishnav.' }, style: { padding: '60px 40px', background: '#fff' } },
+                        { id: 'ac-stats', type: 'stats', content: { stats: [{ label: 'Orders', value: '5' }, { label: 'Wishlist', value: '12' }, { label: 'Points', value: '450' }] }, style: { padding: '40px', background: '#f0fdf4', borderRadius: '12px', margin: '0 40px' } }
+                    ]
+                };
+            } else if (lowerPrompt.includes('portfolio') || lowerPrompt.includes('resume') || lowerPrompt.includes('me')) {
+                // PORTFOLIO TEMPLATE
+                newPages = {
+                    home: [
+                        { id: 'p-head', type: 'header', content: { logo: 'AlexCreator', links: ['Home', 'Work', 'Contact'] }, style: { padding: '20px 40px', background: 'transparent', position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff' } },
+                        { id: 'p-hero', type: 'hero', content: { title: 'I Create Digital Experiences', description: 'Product Designer & Developer based in San Francisco.' }, style: { padding: '180px 40px', background: '#111', color: '#fff', textAlign: 'center' } },
+                        { id: 'p-work', type: 'features', content: { title: 'Selected Work' }, style: { padding: '100px 40px', background: '#111', color: '#fff' } },
+                        { id: 'p-foot', type: 'footer', content: { text: "Start a project with me." }, style: { padding: '80px', background: '#000', color: '#fff', textAlign: 'center' } }
+                    ],
+                    work: [
+                        { id: 'w-head', type: 'header', content: { logo: 'AlexCreator', links: ['Home', 'Work', 'Contact'] }, style: { padding: '20px 40px', background: '#111', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+                        { id: 'w-grid', type: 'shop', content: { title: 'My Projects' }, style: { padding: '80px 40px', background: '#111', color: '#fff' } },
+                        { id: 'w-foot', type: 'footer', content: { text: "© 2024 AlexCreator" }, style: { padding: '40px', background: '#000', color: '#666', textAlign: 'center' } }
+                    ],
+                    contact: [
+                        { id: 'c-head', type: 'header', content: { logo: 'AlexCreator', links: ['Home', 'Work', 'Contact'] }, style: { padding: '20px 40px', background: '#fff', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+                        { id: 'c-form', type: 'content', content: { title: 'Get In Touch', text: 'alex@example.com' }, style: { padding: '100px 40px', background: '#fff', textAlign: 'center' } }
+                    ]
+                };
             } else {
-                throw new Error("Invalid structure");
+                // DEFAULT SAAS/CORPORATE (NEXUS)
+                newPages = {
+                    home: [
+                        { id: 'h-head', type: 'header', content: { logo: 'Nexus', links: ['Home', 'Services', 'About', 'Dashboard'] }, style: { padding: '20px 40px', background: '#fff', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+                        { id: 'h-hero', type: 'hero', content: { title: 'Innovation Starts Here', description: 'Transform your digital presence with our cutting-edge solutions.' }, style: { padding: '120px 40px', background: 'linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%)', color: '#ffffff', textAlign: 'center' } },
+                        { id: 'h-feat', type: 'features', content: { title: 'Core Capabilities' }, style: { padding: '80px 40px', background: '#ffffff' } },
+                        { id: 'h-foot', type: 'footer', content: { text: "© 2024 Nexus Inc." }, style: { padding: '40px', background: '#111827', color: '#9ca3af', textAlign: 'center' } }
+                    ],
+                    services: [
+                        { id: 's-head', type: 'header', content: { logo: 'Nexus', links: ['Home', 'Services', 'About', 'Dashboard'] }, style: { padding: '20px 40px', background: '#fff', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+                        { id: 's-hero', type: 'content', content: { title: 'Our Expertise', text: 'From cloud computing to AI integration, we cover it all.' }, style: { padding: '80px 40px', background: '#f8fafc', textAlign: 'center' } },
+                        { id: 's-shop', type: 'shop', content: { title: 'Service Plans' }, style: { padding: '60px 40px', background: '#ffffff' } },
+                        { id: 's-foot', type: 'footer', content: { text: "© 2024 Nexus Inc." }, style: { padding: '40px', background: '#111827', color: '#9ca3af', textAlign: 'center' } }
+                    ],
+                    about: [
+                        { id: 'a-head', type: 'header', content: { logo: 'Nexus', links: ['Home', 'Services', 'About', 'Dashboard'] }, style: { padding: '20px 40px', background: '#fff', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+                        { id: 'a-content', type: 'content', content: { title: 'Who We Are', text: 'Founded in 2024, Nexus is driven by a passion for technology and a commitment to excellence.' }, style: { padding: '100px 40px', background: '#ffffff', maxWidth: '800px', margin: '0 auto', textAlign: 'center' } },
+                        { id: 'a-stats', type: 'stats', content: { stats: [{ label: 'Years', value: '10+' }, { label: 'Experts', value: '50+' }, { label: 'Global', value: 'Yes' }] }, style: { padding: '60px 40px', background: '#f8fafc' } },
+                        { id: 'a-foot', type: 'footer', content: { text: "© 2024 Nexus Inc." }, style: { padding: '40px', background: '#111827', color: '#9ca3af', textAlign: 'center' } }
+                    ],
+                    dashboard: [
+                        { id: 'd-head', type: 'header', content: { logo: 'Nexus Admin', links: [] }, style: { padding: '20px 40px', background: '#0f172a', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+                        { id: 'd-stats', type: 'stats', content: { stats: [{ label: 'Users', value: '12.5k' }, { label: 'Sales', value: '$1.2M' }, { label: 'Growth', value: '+24%' }] }, style: { padding: '40px', background: '#f1f5f9' } },
+                        { id: 'd-content', type: 'content', content: { title: 'System Status', text: 'All systems operational. No incidents reported in the last 24 hours.' }, style: { padding: '40px', background: '#ffffff', borderRadius: '12px', margin: '20px 40px', border: '1px solid #e2e8f0' } }
+                    ]
+                };
             }
-        } catch (error) {
-            setMessages(prev => [...prev, { role: 'assistant', content: '❌ Error: Could not connect to the Magic Engine. Please verify your GEMINI_API_KEY in the dashboard settings.' }]);
-        } finally {
+
+            setPages(newPages);
+            setActivePageId('home');
+            setMessages(prev => [...prev, { role: 'assistant', content: `✅ Magic Build complete! I've generated a specific structure based on your request: "${prompt}". Explored the configured pages.` }]);
             setIsMagicBuilding(false);
-        }
+        }, 2000);
     };
+
+    const sections = pages[activePageId] || [];
 
     return (
         <div className="studio-container">
@@ -326,27 +510,19 @@ export default function StudioPage() {
                             {/* Pages List */}
                             <div className="panel-content">
                                 <div className="pages-list">
-                                    <button className="page-item">
-                                        <svg className="page-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                                        </svg>
-                                        <span className="page-name">Home</span>
-                                    </button>
-                                    <button className="page-item">
-                                        <svg className="page-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                            <polyline points="14 2 14 8 20 8"></polyline>
-                                        </svg>
-                                        <span className="page-name">Style Guide</span>
-                                    </button>
-                                    <button className="page-item active">
-                                        <svg className="page-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                            <polyline points="14 2 14 8 20 8"></polyline>
-                                        </svg>
-                                        <span className="page-name">Credits and License</span>
-                                    </button>
+                                    {Object.keys(pages).map(pageId => (
+                                        <button
+                                            key={pageId}
+                                            className={`page-item ${activePageId === pageId ? 'active' : ''}`}
+                                            onClick={() => setActivePageId(pageId)}
+                                        >
+                                            <svg className="page-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                                <line x1="3" y1="9" x2="21" y2="9"></line>
+                                            </svg>
+                                            <span className="page-name" style={{ textTransform: 'capitalize' }}>{pageId}</span>
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
                         </div>
@@ -579,12 +755,15 @@ export default function StudioPage() {
                                 <h3>AI Assistant</h3>
                                 <button className="panel-header-btn" onClick={() => {
                                     setMessages([{ role: 'assistant', content: 'Design reset. Ready for a new project!' }]);
-                                    setSections([{
-                                        id: 'hero-1',
-                                        type: 'hero',
-                                        content: { title: 'Build Your Dream Website', description: 'Ultimate design tool for modern creators.' },
-                                        style: { padding: '80px 40px', background: 'linear-gradient(to bottom, #f9fafb, #fff)', color: '#1a1a1a', textAlign: 'center' }
-                                    }]);
+                                    setPages({
+                                        home: [{
+                                            id: 'hero-1',
+                                            type: 'hero',
+                                            content: { title: 'Build Your Dream Website', description: 'Ultimate design tool for modern creators.' },
+                                            style: { padding: '80px 40px', background: 'linear-gradient(to bottom, #f9fafb, #fff)', color: '#1a1a1a', textAlign: 'center' }
+                                        }]
+                                    });
+                                    setActivePageId('home');
                                     setSelectedElement(null);
                                 }}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
@@ -637,7 +816,7 @@ export default function StudioPage() {
                                             setAiInput('');
                                         }
                                     }}>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                                             <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
                                         </svg>
                                     </button>
@@ -739,15 +918,7 @@ export default function StudioPage() {
                         }}>
                             {/* This is where the visual editing happens */}
                             <div className={`preview-browser ${isInspectMode ? 'inspect-active' : ''}`}>
-                                <div className="preview-nav">
-                                    <div className="preview-logo" style={{ color: '#4f46e5', fontWeight: 700 }}>PageCrafter</div>
-                                    <div className="preview-links">
-                                        <span className="preview-link">Home</span>
-                                        <span className="preview-link">Services</span>
-                                        <span className="preview-link">About</span>
-                                    </div>
-                                    <div className="preview-cta">Get Started</div>
-                                </div>
+
 
                                 <div className="sections-container" style={{ overflowY: 'auto', flex: 1 }}>
                                     {sections.map((section) => (
@@ -904,7 +1075,7 @@ export default function StudioPage() {
                                                 <label className="field-label">TextAlign</label>
                                                 <select
                                                     className="field-select"
-                                                    value={sections.find(s => s.id === selectedElement)?.style.textAlign || 'left'}
+                                                    value={sections.find((s: any) => s.id === selectedElement)?.style.textAlign || 'left'}
                                                     onChange={(e) => updateSectionStyle(selectedElement!, { textAlign: e.target.value })}
                                                 >
                                                     <option value="left">Left</option>
@@ -916,7 +1087,7 @@ export default function StudioPage() {
                                                 <label className="field-label">Display</label>
                                                 <select
                                                     className="field-select"
-                                                    value={sections.find(s => s.id === selectedElement)?.style.display || 'block'}
+                                                    value={sections.find((s: any) => s.id === selectedElement)?.style.display || 'block'}
                                                     onChange={(e) => updateSectionStyle(selectedElement!, { display: e.target.value })}
                                                 >
                                                     <option value="block">Block</option>
@@ -937,7 +1108,7 @@ export default function StudioPage() {
                                                         type="text"
                                                         className="field-input"
                                                         placeholder="40"
-                                                        value={sections.find(s => s.id === selectedElement)?.style.padding?.split(' ')[0].replace('px', '') || ''}
+                                                        value={sections.find((s: any) => s.id === selectedElement)?.style.padding?.split(' ')[0].replace('px', '') || ''}
                                                         onChange={(e) => updateSectionStyle(selectedElement!, { padding: `${e.target.value}px 40px` })}
                                                     />
                                                     <span className="unit-indicator">px</span>
@@ -950,7 +1121,7 @@ export default function StudioPage() {
                                                         type="text"
                                                         className="field-input"
                                                         placeholder="0"
-                                                        value={sections.find(s => s.id === selectedElement)?.style.marginBottom?.replace('px', '') || '0'}
+                                                        value={sections.find((s: any) => s.id === selectedElement)?.style.marginBottom?.replace('px', '') || '0'}
                                                         onChange={(e) => updateSectionStyle(selectedElement!, { marginBottom: `${e.target.value}px` })}
                                                     />
                                                     <span className="unit-indicator">px</span>
@@ -968,7 +1139,7 @@ export default function StudioPage() {
                                                         type="text"
                                                         className="field-input"
                                                         placeholder="16"
-                                                        value={sections.find(s => s.id === selectedElement)?.style.fontSize?.replace('px', '') || ''}
+                                                        value={sections.find((s: any) => s.id === selectedElement)?.style.fontSize?.replace('px', '') || ''}
                                                         onChange={(e) => updateSectionStyle(selectedElement!, { fontSize: `${e.target.value}px` })}
                                                     />
                                                     <span className="unit-indicator">px</span>
@@ -978,7 +1149,7 @@ export default function StudioPage() {
                                                 <label className="field-label">Font Weight</label>
                                                 <select
                                                     className="field-select"
-                                                    value={sections.find(s => s.id === selectedElement)?.style.fontWeight || '400'}
+                                                    value={sections.find((s: any) => s.id === selectedElement)?.style.fontWeight || '400'}
                                                     onChange={(e) => updateSectionStyle(selectedElement!, { fontWeight: e.target.value })}
                                                 >
                                                     <option value="300">Light</option>
