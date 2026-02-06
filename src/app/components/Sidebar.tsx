@@ -24,6 +24,8 @@ interface SidebarProps {
   activeView: string;
   onViewChange: (view: string) => void;
   isCollapsed?: boolean;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
 export default function Sidebar({
@@ -36,6 +38,8 @@ export default function Sidebar({
   activeView,
   onViewChange,
   isCollapsed = false,
+  onMouseEnter,
+  onMouseLeave,
 }: SidebarProps) {
   const { theme } = useTheme();
   const [isProjectsExpanded, setIsProjectsExpanded] = useState(true);
@@ -62,6 +66,8 @@ export default function Sidebar({
 
       {/* Sidebar Container */}
       <aside
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
         className={`fixed md:sticky left-0 top-[60px] h-[calc(100vh-60px)] transition-all duration-500 ease-in-out z-40 flex flex-col font-sans ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'
           } ${isCollapsed ? 'w-20' : 'w-64'} bg-[#0f1117] border-r border-slate-800/50 shrink-0 overflow-hidden`}
       >

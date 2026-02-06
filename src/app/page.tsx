@@ -24,6 +24,9 @@ import {
   updateProjectCode as updateProjectCodeInDb,
   replaceProjectMessages,
   Project,
+  getCommunityProjects,
+  publishToCommunity,
+  CommunityProject,
 } from '../lib/supabaseOperations';
 
 
@@ -33,7 +36,7 @@ export default function Home() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
   const [storedApiKey, setStoredApiKey] = useState('');
@@ -119,6 +122,9 @@ export default function Home() {
   const [generatedPages, setGeneratedPages] = useState<Record<string, { title: string; html: string; css: string; js: string; }> | undefined>(undefined);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [renameProjectId, setRenameProjectId] = useState<string | null>(null);
+  const [publishModalOpen, setPublishModalOpen] = useState(false);
+  const [communityProjects, setCommunityProjects] = useState<CommunityProject[]>([]);
+  const [communityLoading, setCommunityLoading] = useState(false);
 
   // Load projects from Supabase when user is authenticated
   useEffect(() => {
@@ -143,6 +149,22 @@ export default function Home() {
     loadProjects();
   }, [user, authLoading]);
 
+  // Load community projects from database
+  useEffect(() => {
+    async function loadCommunityProjects() {
+      setCommunityLoading(true);
+      try {
+        const projects = await getCommunityProjects();
+        setCommunityProjects(projects);
+      } catch (error) {
+        console.error('Error loading community projects:', error);
+      } finally {
+        setCommunityLoading(false);
+      }
+    }
+    loadCommunityProjects();
+  }, []);
+
   // Update generated code when current project changes
   useEffect(() => {
     if (currentProject?.lastGeneratedCode) {
@@ -153,7 +175,7 @@ export default function Home() {
     }
   }, [currentProject]);
 
-  // Close share/download menu when clicking outside
+  // Close share/download/publish menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -163,15 +185,18 @@ export default function Home() {
       if (shareMenuOpen && !target.closest('.share-menu-container')) {
         setShareMenuOpen(false);
       }
+      if (publishModalOpen && !target.closest('.publish-menu-container')) {
+        setPublishModalOpen(false);
+      }
     };
 
-    if (downloadMenuOpen || shareMenuOpen) {
+    if (downloadMenuOpen || shareMenuOpen || publishModalOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
     }
-  }, [downloadMenuOpen, shareMenuOpen]);
+  }, [downloadMenuOpen, shareMenuOpen, publishModalOpen]);
 
   // Falling stars effect disabled to prevent screen flickering
   // The effect was creating new DOM elements every 200ms with infinite animations
@@ -348,6 +373,39 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
     // Open GitHub Gist creation page with pre-filled data
     const gistUrl = `https://gist.github.com/new?description=${encodeURIComponent(gistData.description)}&public=${gistData.public}`;
     window.open(gistUrl, '_blank');
+  };
+
+  const handlePublishToCommunity = async (projectToPublish: Project) => {
+    if (!projectToPublish.lastGeneratedCode) {
+      alert('Please generate some code first before publishing to community!');
+      return;
+    }
+
+    if (!user) {
+      alert('Please sign in to publish to the community!');
+      return;
+    }
+
+    try {
+      const authorName = user?.email?.split('@')[0] || 'Anonymous';
+      const published = await publishToCommunity(
+        projectToPublish.name,
+        projectToPublish.description || 'A project created with PageCrafter AI',
+        projectToPublish.lastGeneratedCode,
+        authorName
+      );
+
+      if (published) {
+        setCommunityProjects(prev => [published, ...prev]);
+        setPublishModalOpen(false);
+        alert(`🎉 "${projectToPublish.name}" has been published to the Community Hub!`);
+      } else {
+        alert('Failed to publish project. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error publishing to community:', error);
+      alert('Failed to publish project. Please try again.');
+    }
   };
 
   const handleExportCode = (format: 'html' | 'zip', projectToExport?: Project) => {
@@ -592,9 +650,72 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                 )}
               </div>
 
-              <button className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black rounded-xl hover:shadow-xl hover:shadow-purple-500/20 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-95">
-                Publish
-              </button>
+              <div className="relative publish-menu-container">
+                <button
+                  onClick={() => setPublishModalOpen(!publishModalOpen)}
+                  className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black rounded-xl hover:shadow-xl hover:shadow-purple-500/20 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-95 flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                  Publish
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+                </button>
+
+                {publishModalOpen && (
+                  <div className={`absolute right-0 mt-2 w-72 rounded-2xl shadow-2xl overflow-hidden border animate-fade-in ${theme === 'dark' ? 'bg-[#1a1c23] border-gray-800' : 'bg-white border-gray-100'} z-[200]`}>
+                    <div className="p-2 space-y-1">
+                      <button
+                        onClick={() => {
+                          if (currentProject) handlePublishToCommunity(currentProject);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors group"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-purple-500/20 to-indigo-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                        </div>
+                        <div className="flex flex-col items-start translate-y-[-1px]">
+                          <span className="text-white">Publish to Community</span>
+                          <span className="text-[10px] text-gray-600 font-medium">Share with PageCrafter community</span>
+                        </div>
+                      </button>
+
+                      <div className="border-t border-gray-800/50 my-2"></div>
+
+                      <button
+                        onClick={() => {
+                          // Future: Deploy to web
+                          alert('Coming soon: Deploy to web!');
+                          setPublishModalOpen(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors group"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <div className="flex flex-col items-start translate-y-[-1px]">
+                          <span>Deploy to Web</span>
+                          <span className="text-[10px] text-gray-600 font-medium">Get a live URL for your site</span>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          handleExportCode('zip');
+                          setPublishModalOpen(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors group"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                        </div>
+                        <div className="flex flex-col items-start translate-y-[-1px]">
+                          <span>Download Code</span>
+                          <span className="text-[10px] text-gray-600 font-medium">Export as ZIP file</span>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </>
           )}
 
@@ -617,13 +738,13 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
           activeView={activeView}
           onViewChange={setActiveView}
           isCollapsed={sidebarCollapsed}
+          onMouseEnter={() => setSidebarCollapsed(false)}
+          onMouseLeave={() => setSidebarCollapsed(true)}
         />
 
         {/* Main Content */}
         <div
           className="flex flex-col md:flex-row flex-1 relative w-full overflow-hidden"
-          onMouseEnter={() => setSidebarCollapsed(true)}
-          onMouseLeave={() => setSidebarCollapsed(false)}
         >
           {activeView === 'chat' ? (
             /* Chat View */
@@ -955,76 +1076,140 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                         </div>
                       </div>
 
-                      {/* Featured Project of the Week */}
-                      <div className="relative h-[340px] rounded-[2.5rem] overflow-hidden border border-gray-800/50 group shadow-2xl">
-                        <div className="absolute inset-0 bg-gradient-to-r from-[#0f1117] via-[#0f1117]/70 to-transparent z-10" />
-                        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=2426')] bg-cover bg-center transition-transform duration-1000 group-hover:scale-105" />
-
-                        <div className="relative z-20 h-full flex flex-col justify-center px-14 max-w-2xl">
-                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest mb-6">
-                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                            Featured Project of the Week
+                      {/* Community Projects Section */}
+                      {communityProjects.length > 0 ? (
+                        <div className="space-y-6">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+                              <h3 className="text-xl font-bold text-white uppercase tracking-tight">Published Projects</h3>
+                              <span className="px-3 py-1 text-xs font-bold bg-purple-500/20 text-purple-400 rounded-full border border-purple-500/30">{communityProjects.length}</span>
+                            </div>
                           </div>
-                          <h3 className="text-5xl font-black text-white mb-8 tracking-tighter leading-[0.9]">
-                            AI Generated <br /><span className="gradient-text">E-commerce Site</span>
-                          </h3>
-                          <div className="flex items-center gap-5">
-                            <button className="px-10 py-4-5 bg-gradient-to-r from-cyan-400 to-blue-600 text-white font-black text-sm rounded-2xl hover:scale-105 transition-all shadow-2xl shadow-blue-500/40 active:scale-95 flex items-center gap-2">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                              Remix This Project
-                            </button>
-                            <button className="px-10 py-4.5 bg-white/5 backdrop-blur-2xl border border-white/10 text-white font-bold text-sm rounded-2xl hover:bg-white/10 transition-all border-b-white/20">
-                              View Profile
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                            {communityProjects.map((project) => (
+                              <div key={project.id} className="group flex flex-col bg-[#1a1c23]/40 backdrop-blur-sm rounded-[2rem] overflow-hidden border border-purple-500/30 hover:border-purple-400/50 transition-all duration-500 shadow-2xl hover:-translate-y-2">
+                                <div className="relative h-56 overflow-hidden bg-gradient-to-br from-purple-900/40 to-indigo-900/40">
+                                  <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="text-center">
+                                      <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+                                      </div>
+                                      <span className="text-xs text-purple-300 font-bold uppercase tracking-wider">Live Preview</span>
+                                    </div>
+                                  </div>
+                                  <div className="absolute top-4 right-4">
+                                    <span className="px-3 py-1 text-[10px] font-black bg-purple-500 text-white rounded-full uppercase tracking-wider shadow-lg">Published</span>
+                                  </div>
+                                </div>
+                                <div className="p-6 flex flex-col flex-1">
+                                  <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-xs font-black text-white shadow-lg">
+                                      {project.authorName[0].toUpperCase()}
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                      <h4 className="text-white font-bold text-sm truncate tracking-tight">{project.projectName}</h4>
+                                      <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">by @{project.authorName}</span>
+                                    </div>
+                                  </div>
+                                  <p className="text-xs text-gray-500 mb-4 line-clamp-2">{project.description}</p>
+                                  <div className="flex items-center justify-between mt-auto">
+                                    <div className="flex items-center gap-4">
+                                      <div className="flex items-center gap-1">
+                                        <svg className="w-4 h-4 text-rose-500" fill="currentColor" viewBox="0 0 20 20"><path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"></path></svg>
+                                        <span className="text-[10px] font-black text-gray-500">{project.likes}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                                        <span className="text-[10px] font-black text-gray-500">{project.remixes}</span>
+                                      </div>
+                                    </div>
+                                    {/* Action Buttons */}
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        title="View Live"
+                                        className="w-8 h-8 rounded-lg bg-gray-700/50 hover:bg-gray-600 flex items-center justify-center transition-colors"
+                                      >
+                                        <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                      </button>
+                                      <button
+                                        title="Remix in Studio"
+                                        onClick={() => {
+                                          localStorage.setItem('remixProject', JSON.stringify({
+                                            name: project.projectName,
+                                            author: project.authorName,
+                                            code: project.code
+                                          }));
+                                          window.location.href = '/studio';
+                                        }}
+                                        className="w-8 h-8 rounded-lg bg-purple-600/50 hover:bg-purple-500 flex items-center justify-center transition-colors"
+                                      >
+                                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        /* Empty State - No Projects Published Yet */
+                        <div className="flex flex-col items-center justify-center py-20 text-center">
+                          <div className="w-24 h-24 mb-6 rounded-3xl bg-gradient-to-r from-purple-600/20 to-indigo-600/20 border border-purple-500/30 flex items-center justify-center">
+                            <svg className="w-12 h-12 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </div>
+                          <h3 className="text-2xl font-bold text-white mb-3">No Projects Yet</h3>
+                          <p className="text-gray-500 max-w-md mb-8">Be the first to share your creation with the community! Publish your project and inspire others.</p>
+                          <button
+                            onClick={() => {
+                              if (currentProject) {
+                                handlePublishToCommunity(currentProject);
+                              } else {
+                                setActiveView('projects');
+                              }
+                            }}
+                            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black rounded-2xl hover:shadow-xl hover:shadow-purple-500/20 transition-all hover:-translate-y-0.5 active:scale-95 flex items-center gap-2"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                            {currentProject ? 'Publish Your Project' : 'Create a Project First'}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Call to Action - Publish Your Project */}
+                      {communityProjects.length > 0 && (
+                        <div className="relative mt-12 p-8 rounded-[2rem] overflow-hidden border border-purple-500/30 bg-gradient-to-r from-purple-900/20 to-indigo-900/20 shadow-2xl">
+                          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/5 to-indigo-600/5" />
+                          <div className="relative flex flex-col md:flex-row items-center justify-between gap-6">
+                            <div className="flex items-center gap-6">
+                              <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                              </div>
+                              <div>
+                                <h3 className="text-xl font-bold text-white mb-1">Share More Creations!</h3>
+                                <p className="text-gray-400 text-sm">Publish another project to the community</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                if (currentProject) {
+                                  handlePublishToCommunity(currentProject);
+                                } else {
+                                  alert('Please select a project first!');
+                                }
+                              }}
+                              className="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black rounded-2xl hover:shadow-xl hover:shadow-purple-500/20 transition-all hover:-translate-y-0.5 active:scale-95 flex items-center gap-2"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+                              Publish Another Project
                             </button>
                           </div>
                         </div>
-                      </div>
-
-                      {/* Project Grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                        {[
-                          { title: 'Neon Portfolio', user: 'AlexD', color: 'from-fuchsia-600 to-purple-600', img: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&auto=format&fit=crop&q=60' },
-                          { title: 'SaaS Landing', user: 'SarahK', color: 'from-blue-600 to-indigo-600', img: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&auto=format&fit=crop&q=60' },
-                          { title: 'Blog Template', user: 'MikeR', color: 'from-emerald-600 to-teal-600', img: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&auto=format&fit=crop&q=60' },
-                          { title: '3D Showcase', user: 'EmilyW', color: 'from-orange-600 to-red-600', img: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&auto=format&fit=crop&q=60' }
-                        ].map((project, idx) => (
-                          <div key={idx} className="group flex flex-col bg-[#1a1c23]/40 backdrop-blur-sm rounded-[2rem] overflow-hidden border border-gray-800/50 hover:border-indigo-500/50 transition-all duration-500 shadow-2xl hover:-translate-y-2">
-                            <div className="relative h-56 overflow-hidden">
-                              <img src={project.img} alt={project.title} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
-                              <div className="absolute inset-0 bg-gradient-to-t from-[#0f1117] via-transparent to-transparent opacity-60" />
-                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[4px]">
-                                <button className="px-8 py-3 bg-white text-black font-black text-xs rounded-2xl shadow-2xl hover:scale-110 transition-transform active:scale-95 uppercase tracking-widest">
-                                  Preview Live
-                                </button>
-                              </div>
-                            </div>
-                            <div className="p-6 flex flex-col flex-1">
-                              <div className="flex items-center gap-3 mb-6">
-                                <div className={`w-10 h-10 rounded-2xl bg-gradient-to-tr ${project.color} flex items-center justify-center text-xs font-black text-white shadow-lg`}>
-                                  {project.user[0]}
-                                </div>
-                                <div className="flex flex-col min-w-0">
-                                  <h4 className="text-white font-bold text-sm truncate tracking-tight">{project.title}</h4>
-                                  <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">by @{project.user}</span>
-                                </div>
-                                <div className="ml-auto flex items-center gap-3">
-                                  <div className="flex flex-col items-center gap-0.5">
-                                    <svg className="w-4 h-4 text-gray-600 group-hover:text-rose-500 transition-colors" fill="currentColor" viewBox="0 0 20 20"><path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"></path></svg>
-                                    <span className="text-[9px] font-black text-gray-600">12</span>
-                                  </div>
-                                  <div className="flex flex-col items-center gap-0.5">
-                                    <svg className="w-4 h-4 text-gray-600 group-hover:text-cyan-400 transition-colors" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z"></path></svg>
-                                    <span className="text-[9px] font-black text-gray-600">8</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <button className="w-full py-4 bg-gradient-to-r from-cyan-400 to-blue-600 text-white font-black text-xs rounded-2xl hover:scale-[1.02] transition-all shadow-xl shadow-blue-500/10 active:scale-95 uppercase tracking-widest">
-                                Remix
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      )}
                     </div>
                   )}
 

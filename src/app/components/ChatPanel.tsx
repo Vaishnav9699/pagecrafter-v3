@@ -83,6 +83,9 @@ export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentPro
     onMessagesUpdate?.(newMessages);
 
     try {
+      // Get custom API key from localStorage
+      const customApiKey = localStorage.getItem('gemini_api_key');
+
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: {
@@ -92,12 +95,14 @@ export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentPro
           prompt: userMessage,
           previousHtml: lastGeneratedCode.html,
           previousCss: lastGeneratedCode.css,
-          previousJs: lastGeneratedCode.js
+          previousJs: lastGeneratedCode.js,
+          customApiKey: customApiKey || undefined
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate code');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to generate code');
       }
 
       const data = await response.json();
@@ -113,11 +118,14 @@ export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentPro
         onCodeUpdate?.(data.code);
         onCodeGenerated(data.code, data.pages);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error:', error);
+      const errorMessage = error.message?.includes('API key')
+        ? 'No API key found. Please add your Gemini API key in Settings (gear icon in the sidebar).'
+        : 'Sorry, there was an error generating the code. Please try again.';
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Sorry, there was an error generating the code. Please try again.'
+        content: errorMessage
       }]);
     } finally {
       setIsLoading(false);

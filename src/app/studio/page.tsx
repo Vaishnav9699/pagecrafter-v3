@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import './studio.css';
 
@@ -16,6 +16,33 @@ export default function StudioPage() {
     const [messages, setMessages] = useState([
         { role: 'assistant', content: 'Hello! I am your AI Design Assistant. How can I help you build your website today?' }
     ]);
+
+    // Remix project state - for loading community projects
+    const [remixProject, setRemixProject] = useState<{ name: string; author: string; code: { html: string; css: string; js: string } } | null>(null);
+    const [isCodeMode, setIsCodeMode] = useState(false);
+    const [editableCode, setEditableCode] = useState({ html: '', css: '', js: '' });
+    const [activeCodeTab, setActiveCodeTab] = useState<'html' | 'css' | 'js'>('html');
+
+    // Check for remix project from localStorage on mount
+    useEffect(() => {
+        const savedRemix = localStorage.getItem('remixProject');
+        if (savedRemix) {
+            try {
+                const parsed = JSON.parse(savedRemix);
+                setRemixProject(parsed);
+                setEditableCode(parsed.code);
+                setIsCodeMode(true);
+                setMessages(prev => [...prev, {
+                    role: 'assistant',
+                    content: `🎨 Loaded "${parsed.name}" by @${parsed.author} for remixing! You can edit the code in the Code Editor and see live preview.`
+                }]);
+                // Clear localStorage after loading
+                localStorage.removeItem('remixProject');
+            } catch (e) {
+                console.error('Failed to parse remix project:', e);
+            }
+        }
+    }, []);
 
     // Website State
     const [activePageId, setActivePageId] = useState<string>('home');
@@ -894,6 +921,19 @@ export default function StudioPage() {
                             </div>
 
                             <div className="inspect-tool">
+                                {/* Code Mode Toggle for Remixed Projects */}
+                                <button
+                                    className={`inspect-btn ${isCodeMode ? 'active' : ''}`}
+                                    onClick={() => setIsCodeMode(!isCodeMode)}
+                                    title={isCodeMode ? 'Switch to Visual Editor' : 'Switch to Code Editor'}
+                                    style={{ marginRight: '8px' }}
+                                >
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                                        <polyline points="16 18 22 12 16 6"></polyline>
+                                        <polyline points="8 6 2 12 8 18"></polyline>
+                                    </svg>
+                                    <span className="inspect-text">{isCodeMode ? 'Visual' : 'Code'}</span>
+                                </button>
                                 <button
                                     className={`inspect-btn ${isInspectMode ? 'active' : ''}`}
                                     onClick={() => setIsInspectMode(!isInspectMode)}
@@ -910,102 +950,185 @@ export default function StudioPage() {
                     </div>
 
                     <div className="canvas-viewport" style={{ overflow: 'auto' }}>
-                        <div className="canvas-content" style={{
-                            width: viewport === 'mobile' ? '375px' : viewport === 'tablet' ? '768px' : '100%',
-                            transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                            margin: '40px auto',
-                            border: isInspectMode ? '2px dashed #6366f1' : '1px solid #2a2a2a'
-                        }}>
-                            {/* This is where the visual editing happens */}
-                            <div className={`preview-browser ${isInspectMode ? 'inspect-active' : ''}`}>
-
-
-                                <div className="sections-container" style={{ overflowY: 'auto', flex: 1 }}>
-                                    {sections.map((section) => (
-                                        <div
-                                            key={section.id}
-                                            className={`canvas-section ${selectedElement === section.id ? 'selected' : ''}`}
-                                            style={{
-                                                ...section.style,
-                                                position: 'relative',
-                                                cursor: 'pointer',
-                                                border: selectedElement === section.id ? '2px solid #6366f1' : '1px transparent'
-                                            }}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSelectedElement(section.id);
-                                            }}
-                                        >
-                                            {section.type === 'hero' && (
-                                                <div className="preview-hero" style={{ padding: 0, background: 'none' }}>
-                                                    <h1>{section.content.title}</h1>
-                                                    <p>{section.content.description}</p>
-                                                    <div className="preview-cta">Start Free Trial</div>
-                                                </div>
-                                            )}
-                                            {section.type === 'shop' && (
-                                                <div className="preview-shop">
-                                                    <h2 style={{ textAlign: 'center', marginBottom: '30px' }}>{section.content.title}</h2>
-                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
-                                                        {[1, 2, 3].map(i => (
-                                                            <div key={i} style={{ padding: '15px', border: '1px solid #eee', borderRadius: '8px' }}>
-                                                                <div style={{ aspectRatio: '1', background: '#f3f4f6', borderRadius: '4px', marginBottom: '10px' }}></div>
-                                                                <div style={{ fontWeight: 600 }}>Product Name {i}</div>
-                                                                <div style={{ color: '#4f46e5', fontWeight: 700 }}>$99.00</div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {section.type === 'features' && (
-                                                <div className="preview-features" style={{ padding: 0 }}>
-                                                    {/* Existing cards but mapped */}
-                                                    <div className="preview-feature-card">
-                                                        <div className="feature-icon">
-                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-                                                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                                                            </svg>
-                                                        </div>
-                                                        <div className="feature-title">Fast Performance</div>
-                                                        <div className="feature-desc">Turbo-charged loading speeds.</div>
-                                                    </div>
-                                                    <div className="preview-feature-card">
-                                                        <div className="feature-icon">
-                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-                                                                <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
-                                                                <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
-                                                                <path d="M2 2l7.586 7.586"></path>
-                                                                <circle cx="11" cy="11" r="2"></circle>
-                                                            </svg>
-                                                        </div>
-                                                        <div className="feature-title">Beautiful UI</div>
-                                                        <div className="feature-desc">Premium components.</div>
-                                                    </div>
-                                                    <div className="preview-feature-card">
-                                                        <div className="feature-icon">
-                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-                                                                <rect x="3" y="11" width="18" height="10" rx="2"></rect>
-                                                                <circle cx="12" cy="5" r="2"></circle>
-                                                                <path d="M12 7v4"></path>
-                                                                <line x1="8" y1="16" x2="8.01" y2="16"></line>
-                                                                <line x1="16" y1="16" x2="16.01" y2="16"></line>
-                                                            </svg>
-                                                        </div>
-                                                        <div className="feature-title">AI Powered</div>
-                                                        <div className="feature-desc">AI handles the heavy lifting.</div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {section.type === 'footer' && (
-                                                <div className="preview-footer">
-                                                    <p>{section.content.text}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
+                        {isCodeMode ? (
+                            /* Code Editor Mode - for remixed projects */
+                            <div style={{ display: 'flex', height: '100%', gap: '16px', padding: '16px' }}>
+                                {/* Code Editor Panel */}
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#1a1c23', borderRadius: '12px', overflow: 'hidden', border: '1px solid #2a2a2a' }}>
+                                    {/* Tabs */}
+                                    <div style={{ display: 'flex', background: '#0f1117', borderBottom: '1px solid #2a2a2a' }}>
+                                        {['html', 'css', 'js'].map((tab) => (
+                                            <button
+                                                key={tab}
+                                                onClick={() => setActiveCodeTab(tab as 'html' | 'css' | 'js')}
+                                                style={{
+                                                    padding: '12px 20px',
+                                                    background: activeCodeTab === tab ? '#1a1c23' : 'transparent',
+                                                    border: 'none',
+                                                    color: activeCodeTab === tab ? '#fff' : '#6b7280',
+                                                    fontWeight: 600,
+                                                    fontSize: '12px',
+                                                    textTransform: 'uppercase',
+                                                    cursor: 'pointer',
+                                                    borderBottom: activeCodeTab === tab ? '2px solid #6366f1' : '2px solid transparent'
+                                                }}
+                                            >
+                                                {tab.toUpperCase()}
+                                            </button>
+                                        ))}
+                                        {remixProject && (
+                                            <div style={{ marginLeft: 'auto', padding: '8px 16px', color: '#9ca3af', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span style={{ color: '#a855f7' }}>✨ Remixing:</span> {remixProject.name}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {/* Code Textarea */}
+                                    <textarea
+                                        value={activeCodeTab === 'html' ? editableCode.html : activeCodeTab === 'css' ? editableCode.css : editableCode.js}
+                                        onChange={(e) => setEditableCode(prev => ({
+                                            ...prev,
+                                            [activeCodeTab]: e.target.value
+                                        }))}
+                                        style={{
+                                            flex: 1,
+                                            background: '#0f1117',
+                                            color: '#e5e7eb',
+                                            border: 'none',
+                                            padding: '16px',
+                                            fontFamily: 'monospace',
+                                            fontSize: '13px',
+                                            lineHeight: 1.6,
+                                            resize: 'none',
+                                            outline: 'none'
+                                        }}
+                                        placeholder={`Enter your ${activeCodeTab.toUpperCase()} code here...`}
+                                        spellCheck={false}
+                                    />
+                                </div>
+                                {/* Live Preview */}
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#1a1c23', borderRadius: '12px', overflow: 'hidden', border: '1px solid #2a2a2a' }}>
+                                    <div style={{ padding: '12px 20px', background: '#0f1117', borderBottom: '1px solid #2a2a2a', color: '#9ca3af', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <path d="M2 12h20"></path>
+                                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                                        </svg>
+                                        LIVE PREVIEW
+                                    </div>
+                                    <iframe
+                                        srcDoc={`<!DOCTYPE html>
+<html>
+<head>
+    <style>${editableCode.css}</style>
+</head>
+<body>
+    ${editableCode.html}
+    <script>${editableCode.js}<\/script>
+</body>
+</html>`}
+                                        style={{ flex: 1, border: 'none', background: '#fff' }}
+                                        title="Live Preview"
+                                    />
                                 </div>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="canvas-content" style={{
+                                width: viewport === 'mobile' ? '375px' : viewport === 'tablet' ? '768px' : '100%',
+                                transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                margin: '40px auto',
+                                border: isInspectMode ? '2px dashed #6366f1' : '1px solid #2a2a2a'
+                            }}>
+                                {/* This is where the visual editing happens */}
+                                <div className={`preview-browser ${isInspectMode ? 'inspect-active' : ''}`}>
+
+
+                                    <div className="sections-container" style={{ overflowY: 'auto', flex: 1 }}>
+                                        {sections.map((section) => (
+                                            <div
+                                                key={section.id}
+                                                className={`canvas-section ${selectedElement === section.id ? 'selected' : ''}`}
+                                                style={{
+                                                    ...section.style,
+                                                    position: 'relative',
+                                                    cursor: 'pointer',
+                                                    border: selectedElement === section.id ? '2px solid #6366f1' : '1px transparent'
+                                                }}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedElement(section.id);
+                                                }}
+                                            >
+                                                {section.type === 'hero' && (
+                                                    <div className="preview-hero" style={{ padding: 0, background: 'none' }}>
+                                                        <h1>{section.content.title}</h1>
+                                                        <p>{section.content.description}</p>
+                                                        <div className="preview-cta">Start Free Trial</div>
+                                                    </div>
+                                                )}
+                                                {section.type === 'shop' && (
+                                                    <div className="preview-shop">
+                                                        <h2 style={{ textAlign: 'center', marginBottom: '30px' }}>{section.content.title}</h2>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+                                                            {[1, 2, 3].map(i => (
+                                                                <div key={i} style={{ padding: '15px', border: '1px solid #eee', borderRadius: '8px' }}>
+                                                                    <div style={{ aspectRatio: '1', background: '#f3f4f6', borderRadius: '4px', marginBottom: '10px' }}></div>
+                                                                    <div style={{ fontWeight: 600 }}>Product Name {i}</div>
+                                                                    <div style={{ color: '#4f46e5', fontWeight: 700 }}>$99.00</div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {section.type === 'features' && (
+                                                    <div className="preview-features" style={{ padding: 0 }}>
+                                                        {/* Existing cards but mapped */}
+                                                        <div className="preview-feature-card">
+                                                            <div className="feature-icon">
+                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                                                                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                                                                </svg>
+                                                            </div>
+                                                            <div className="feature-title">Fast Performance</div>
+                                                            <div className="feature-desc">Turbo-charged loading speeds.</div>
+                                                        </div>
+                                                        <div className="preview-feature-card">
+                                                            <div className="feature-icon">
+                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                                                                    <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                                                                    <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                                                                    <path d="M2 2l7.586 7.586"></path>
+                                                                    <circle cx="11" cy="11" r="2"></circle>
+                                                                </svg>
+                                                            </div>
+                                                            <div className="feature-title">Beautiful UI</div>
+                                                            <div className="feature-desc">Premium components.</div>
+                                                        </div>
+                                                        <div className="preview-feature-card">
+                                                            <div className="feature-icon">
+                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                                                                    <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                                                                    <circle cx="12" cy="5" r="2"></circle>
+                                                                    <path d="M12 7v4"></path>
+                                                                    <line x1="8" y1="16" x2="8.01" y2="16"></line>
+                                                                    <line x1="16" y1="16" x2="16.01" y2="16"></line>
+                                                                </svg>
+                                                            </div>
+                                                            <div className="feature-title">AI Powered</div>
+                                                            <div className="feature-desc">AI handles the heavy lifting.</div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {section.type === 'footer' && (
+                                                    <div className="preview-footer">
+                                                        <p>{section.content.text}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="canvas-footer">
@@ -1298,6 +1421,6 @@ export default function StudioPage() {
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

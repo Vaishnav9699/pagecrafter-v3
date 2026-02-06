@@ -41,10 +41,10 @@ function dbProjectToProject(
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
     lastGeneratedCode: dbProject.last_generated_html
       ? {
-          html: dbProject.last_generated_html || "",
-          css: dbProject.last_generated_css || "",
-          js: dbProject.last_generated_js || "",
-        }
+        html: dbProject.last_generated_html || "",
+        css: dbProject.last_generated_css || "",
+        js: dbProject.last_generated_js || "",
+      }
       : undefined,
     files: files.map((f) => ({
       id: f.id,
@@ -314,6 +314,252 @@ export async function replaceProjectMessages(
       console.error("Error inserting messages:", insertError);
       return false;
     }
+  }
+
+  return true;
+}
+
+// =============================================
+// COMMUNITY PROJECTS OPERATIONS
+// =============================================
+
+export interface CommunityProject {
+  id: string;
+  userId: string;
+  authorName: string;
+  projectName: string;
+  description: string;
+  code: { html: string; css: string; js: string };
+  likes: number;
+  remixes: number;
+  createdAt: Date;
+}
+
+// Fetch all community projects (visible to all users)
+export async function getCommunityProjects(): Promise<CommunityProject[]> {
+  const { data, error } = await supabase
+    .from("community_projects")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching community projects:", error);
+    return [];
+  }
+
+  return (data || []).map((p) => ({
+    id: p.id,
+    userId: p.user_id,
+    authorName: p.author_name,
+    projectName: p.project_name,
+    description: p.description || "A project created with PageCrafter AI",
+    code: {
+      html: p.html_code || "",
+      css: p.css_code || "",
+      js: p.js_code || "",
+    },
+    likes: p.likes || 0,
+    remixes: p.remixes || 0,
+    createdAt: new Date(p.created_at),
+  }));
+}
+
+// Publish a project to the community
+export async function publishToCommunity(
+  projectName: string,
+  description: string,
+  code: { html: string; css: string; js: string },
+  authorName: string
+): Promise<CommunityProject | null> {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    console.error("User not authenticated");
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("community_projects")
+    .insert({
+      user_id: userId,
+      author_name: authorName,
+      project_name: projectName,
+      description: description || null,
+      html_code: code.html,
+      css_code: code.css,
+      js_code: code.js,
+      likes: 0,
+      remixes: 0,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error publishing to community:", error);
+    return null;
+  }
+
+  return {
+    id: data.id,
+    userId: data.user_id,
+    authorName: data.author_name,
+    projectName: data.project_name,
+    description: data.description || "A project created with PageCrafter AI",
+    code: {
+      html: data.html_code || "",
+      css: data.css_code || "",
+      js: data.js_code || "",
+    },
+    likes: data.likes || 0,
+    remixes: data.remixes || 0,
+    createdAt: new Date(data.created_at),
+  };
+}
+
+// Like a community project
+export async function likeCommunityProject(projectId: string): Promise<boolean> {
+  const { data: currentData, error: fetchError } = await supabase
+    .from("community_projects")
+    .select("likes")
+    .eq("id", projectId)
+    .single();
+
+  if (fetchError) {
+    console.error("Error fetching project likes:", fetchError);
+    return false;
+  }
+
+  const { error } = await supabase
+    .from("community_projects")
+    .update({ likes: (currentData?.likes || 0) + 1 })
+    .eq("id", projectId);
+
+  if (error) {
+    console.error("Error liking project:", error);
+    return false;
+  }
+
+  return true;
+}
+
+// Increment remix count
+export async function incrementRemixCount(projectId: string): Promise<boolean> {
+  const { data: currentData, error: fetchError } = await supabase
+    .from("community_projects")
+    .select("remixes")
+    .eq("id", projectId)
+    .single();
+
+  if (fetchError) {
+    console.error("Error fetching project remixes:", fetchError);
+    return false;
+  }
+
+  const { error } = await supabase
+    .from("community_projects")
+    .update({ remixes: (currentData?.remixes || 0) + 1 })
+    .eq("id", projectId);
+
+  if (error) {
+    console.error("Error incrementing remix count:", error);
+    return false;
+  }
+
+  return true;
+}
+
+// Delete a community project (only owner can delete)
+export async function deleteCommunityProject(projectId: string): Promise<boolean> {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    console.error("User not authenticated");
+    return false;
+  }
+
+  const { error } = await supabase
+    .from("community_projects")
+    .delete()
+    .eq("id", projectId)
+    .eq("user_id", userId);
+
+  if (error) {
+    console.error("Error deleting community project:", error);
+    return false;
+  }
+
+  return true;
+}
+
+// =====================
+// User Settings Operations
+// =====================
+
+// Get user's API key from database
+export async function getUserApiKey(): Promise<string | null> {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("user_settings")
+    .select("gemini_api_key")
+    .eq("user_id", userId)
+    .single();
+
+  if (error) {
+    // No settings found is not an error
+    if (error.code === 'PGRST116') {
+      return null;
+    }
+    console.error("Error fetching user API key:", error);
+    return null;
+  }
+
+  return data?.gemini_api_key || null;
+}
+
+// Save user's API key to database
+export async function saveUserApiKey(apiKey: string): Promise<boolean> {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    console.error("User not authenticated");
+    return false;
+  }
+
+  // Upsert - insert or update if exists
+  const { error } = await supabase
+    .from("user_settings")
+    .upsert({
+      user_id: userId,
+      gemini_api_key: apiKey,
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'user_id'
+    });
+
+  if (error) {
+    console.error("Error saving user API key:", error);
+    return false;
+  }
+
+  return true;
+}
+
+// Delete user's API key from database
+export async function deleteUserApiKey(): Promise<boolean> {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    return false;
+  }
+
+  const { error } = await supabase
+    .from("user_settings")
+    .update({ gemini_api_key: null, updated_at: new Date().toISOString() })
+    .eq("user_id", userId);
+
+  if (error) {
+    console.error("Error deleting user API key:", error);
+    return false;
   }
 
   return true;

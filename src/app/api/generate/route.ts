@@ -5,15 +5,18 @@ export async function POST(request: NextRequest) {
   try {
     const message = await request.json();
 
-    if (!process.env.GEMINI_API_KEY) {
+    // Use custom API key from request, or fall back to environment variable
+    const apiKey = message.customApiKey || process.env.GEMINI_API_KEY;
+
+    if (!apiKey) {
       return NextResponse.json(
-        { error: "GEMINI_API_KEY is not configured" },
-        { status: 500 },
+        { error: "No API key provided. Please add your Gemini API key in Settings." },
+        { status: 400 },
       );
     }
 
     const ai = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
+      apiKey: apiKey,
     });
 
     const config = {

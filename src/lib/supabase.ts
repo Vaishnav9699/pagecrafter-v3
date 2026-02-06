@@ -37,3 +37,17 @@ export interface DbProjectFile {
   type: "html" | "css" | "js";
   created_at: string;
 }
+
+export interface DbCommunityProject {
+  id: string;
+  user_id: string;
+  author_name: string;
+  project_name: string;
+  description: string | null;
+  html_code: string;
+  css_code: string;
+  js_code: string;
+  likes: number;
+  remixes: number;
+  created_at: string;
+}
