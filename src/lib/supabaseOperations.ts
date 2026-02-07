@@ -333,6 +333,10 @@ export interface CommunityProject {
   likes: number;
   remixes: number;
   createdAt: Date;
+  category?: string;
+  isTemplate?: boolean;
+  thumbnailUrl?: string;
+  tags?: string[];
 }
 
 // Fetch all community projects (visible to all users)
@@ -361,6 +365,10 @@ export async function getCommunityProjects(): Promise<CommunityProject[]> {
     likes: p.likes || 0,
     remixes: p.remixes || 0,
     createdAt: new Date(p.created_at),
+    category: p.category || undefined,
+    isTemplate: p.is_template || false,
+    thumbnailUrl: p.thumbnail_url || undefined,
+    tags: p.tags || [],
   }));
 }
 
@@ -369,7 +377,10 @@ export async function publishToCommunity(
   projectName: string,
   description: string,
   code: { html: string; css: string; js: string },
-  authorName: string
+  authorName: string,
+  category?: string,
+  isTemplate?: boolean,
+  tags?: string[]
 ): Promise<CommunityProject | null> {
   const userId = await getCurrentUserId();
   if (!userId) {
@@ -389,6 +400,9 @@ export async function publishToCommunity(
       js_code: code.js,
       likes: 0,
       remixes: 0,
+      category: category || null,
+      is_template: isTemplate || false,
+      tags: tags || [],
     })
     .select()
     .single();
@@ -412,6 +426,10 @@ export async function publishToCommunity(
     likes: data.likes || 0,
     remixes: data.remixes || 0,
     createdAt: new Date(data.created_at),
+    category: data.category || undefined,
+    isTemplate: data.is_template || false,
+    thumbnailUrl: data.thumbnail_url || undefined,
+    tags: data.tags || [],
   };
 }
 
@@ -563,4 +581,180 @@ export async function deleteUserApiKey(): Promise<boolean> {
   }
 
   return true;
+}
+
+// =============================================
+// TEAMS OPERATIONS
+// =============================================
+
+export interface Team {
+  id: string;
+  name: string;
+  description?: string;
+  ownerId: string;
+  createdAt: Date;
+}
+
+export interface TeamMember {
+  id: string;
+  teamId: string;
+  userId: string;
+  role: 'owner' | 'admin' | 'member';
+  joinedAt: Date;
+}
+
+// Get all teams for the current user
+export async function getUserTeams(): Promise<Team[]> {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("teams")
+    .select("*")
+    .eq("owner_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching teams:", error);
+    return [];
+  }
+
+  return (data || []).map((t) => ({
+    id: t.id,
+    name: t.name,
+    description: t.description || undefined,
+    ownerId: t.owner_id,
+    createdAt: new Date(t.created_at),
+  }));
+}
+
+// Create a new team
+export async function createTeam(
+  name: string,
+  description?: string
+): Promise<Team | null> {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    console.error("User not authenticated");
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("teams")
+    .insert({
+      name,
+      description: description || null,
+      owner_id: userId,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating team:", error);
+    return null;
+  }
+
+  // Add owner as a team member
+  await supabase.from("team_members").insert({
+    team_id: data.id,
+    user_id: userId,
+    role: 'owner',
+  });
+
+  return {
+    id: data.id,
+    name: data.name,
+    description: data.description || undefined,
+    ownerId: data.owner_id,
+    createdAt: new Date(data.created_at),
+  };
+}
+
+// Get team members
+export async function getTeamMembers(teamId: string): Promise<TeamMember[]> {
+  const { data, error } = await supabase
+    .from("team_members")
+    .select("*")
+    .eq("team_id", teamId);
+
+  if (error) {
+    console.error("Error fetching team members:", error);
+    return [];
+  }
+
+  return (data || []).map((m) => ({
+    id: m.id,
+    teamId: m.team_id,
+    userId: m.user_id,
+    role: m.role,
+    joinedAt: new Date(m.joined_at),
+  }));
+}
+
+// =============================================
+// COMMUNITY CHAT OPERATIONS
+// =============================================
+
+export interface ChatMessage {
+  id: string;
+  userId: string;
+  userName: string;
+  message: string;
+  createdAt: Date;
+}
+
+// Get recent chat messages
+export async function getChatMessages(limit: number = 50): Promise<ChatMessage[]> {
+  const { data, error } = await supabase
+    .from("community_chat")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("Error fetching chat messages:", error);
+    return [];
+  }
+
+  return (data || []).map((m) => ({
+    id: m.id,
+    userId: m.user_id,
+    userName: m.user_name,
+    message: m.message,
+    createdAt: new Date(m.created_at),
+  })).reverse(); // Reverse to show oldest first
+}
+
+// Send a chat message
+export async function sendChatMessage(message: string, userName: string): Promise<ChatMessage | null> {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    console.error("User not authenticated");
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("community_chat")
+    .insert({
+      user_id: userId,
+      user_name: userName,
+      message,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error sending chat message:", error);
+    return null;
+  }
+
+  return {
+    id: data.id,
+    userId: data.user_id,
+    userName: data.user_name,
+    message: data.message,
+    createdAt: new Date(data.created_at),
+  };
 }

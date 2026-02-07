@@ -76,16 +76,27 @@ body {
   padding: 0;
   height: 100%;
   background-color: var(--background);
-  background-image: url("/background.png");
-  background-size: cover;
-  background-attachment: fixed;
-  background-position: center;
-  background-repeat: no-repeat;
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   transition:
     background-color 0.3s ease,
     color 0.3s ease;
+}
+
+/* Light mode - clean white/light background */
+body {
+  background-image: none;
+  background-color: #f9fafb;
+}
+
+/* Dark mode - keep the dark background image */
+[data-theme="dark"] body {
+  background-image: url("/background.png");
+  background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #0f172a;
 }
 
 #__next {
@@ -325,7 +336,8 @@ body {
   width: 100%;
 }
 
-body::before {
+/* Shadow overlay - only for dark mode */
+[data-theme="dark"] body::before {
   content: "";
   position: fixed;
   top: 0;
@@ -409,6 +421,7 @@ body::before {
   scrollbar-width: thin;
   scrollbar-color: rgba(99, 102, 241, 0.1) transparent;
 }
+
 /* ===================================
    STUDIO PREMIUM BADGE
    =================================== */
@@ -425,7 +438,7 @@ body::before {
   cursor: pointer;
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 
+  box-shadow:
     0 20px 60px rgba(168, 85, 247, 0.3),
     0 0 0 1px rgba(168, 85, 247, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -433,7 +446,7 @@ body::before {
 
 .studio-premium-card:hover {
   transform: translateY(-8px) scale(1.02);
-  box-shadow: 
+  box-shadow:
     0 30px 80px rgba(168, 85, 247, 0.5),
     0 0 100px rgba(168, 85, 247, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -457,8 +470,17 @@ body::before {
 }
 
 @keyframes pulseGlow {
-  0%, 100% { transform: scale(1); opacity: 0.3; }
-  50% { transform: scale(1.1); opacity: 0.6; }
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 0.6;
+  }
 }
 
 .studio-badge-content {
@@ -482,8 +504,15 @@ body::before {
 }
 
 @keyframes floatIcon {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .studio-icon-glow {
@@ -499,8 +528,17 @@ body::before {
 }
 
 @keyframes pulse {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
-  50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.8; }
+
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0.8;
+  }
 }
 
 .studio-text-wrapper {
@@ -535,8 +573,15 @@ body::before {
 }
 
 @keyframes badgePulse {
-  0%, 100% { box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4); }
-  50% { box-shadow: 0 4px 20px rgba(168, 85, 247, 0.8); }
+
+  0%,
+  100% {
+    box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 4px 20px rgba(168, 85, 247, 0.8);
+  }
 }
 
 .studio-description {
@@ -602,19 +647,19 @@ body::before {
     padding: 24px 28px;
     max-width: 100%;
   }
-  
+
   .studio-title {
     font-size: 24px;
   }
-  
+
   .studio-icon {
     font-size: 48px;
   }
-  
+
   .studio-badge-content {
     gap: 16px;
   }
-  
+
   .studio-arrow {
     font-size: 24px;
   }
@@ -640,6 +685,7 @@ body::before {
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(100%);
   }
@@ -654,12 +700,12 @@ body::before {
   .studio-holo-card .text-3xl {
     font-size: 1.5rem;
   }
-  
+
   .studio-holo-card .w-16 {
     width: 3rem;
     height: 3rem;
   }
-  
+
   .studio-holo-card .p-8 {
     padding: 1.5rem;
   }

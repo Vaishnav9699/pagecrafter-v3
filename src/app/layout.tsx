@@ -1,7 +1,9 @@
+'use client';
+
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "./contexts/ThemeContext";
+import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { AuthProvider } from "./contexts/AuthContext";
 
 const inter = Inter({
@@ -9,10 +11,18 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "PageCrafter - AI-Powered Web App Creator",
-  description: "Create static web applications using AI assistance",
-};
+function BodyContent({ children }: { children: React.ReactNode }) {
+  const { theme } = useTheme();
+
+  return (
+    <body
+      className={` ${inter.className} antialiased`}
+      data-theme={theme}
+    >
+      {children}
+    </body>
+  );
+}
 
 export default function RootLayout({
   children,
@@ -21,15 +31,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={` ${inter.className} antialiased`}
-      >
-        <ThemeProvider>
-          <AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <BodyContent>
             {children}
-          </AuthProvider>
-        </ThemeProvider>
-      </body>
+          </BodyContent>
+        </AuthProvider>
+      </ThemeProvider>
     </html>
   );
 }

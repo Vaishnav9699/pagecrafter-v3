@@ -17,6 +17,7 @@ import PDFPanel from './components/PDFPanel';
 import PDFPreview from './components/PDFPreview';
 import DashboardBackground from './components/DashboardBackground';
 import HolographicCard from './components/HolographicCard';
+import PublishModal from './components/PublishModal';
 import {
   getProjects,
   createProject as createProjectInDb,
@@ -26,6 +27,7 @@ import {
   Project,
   getCommunityProjects,
   publishToCommunity,
+  deleteCommunityProject,
   CommunityProject,
 } from '../lib/supabaseOperations';
 
@@ -125,27 +127,35 @@ export default function Home() {
   const [publishModalOpen, setPublishModalOpen] = useState(false);
   const [communityProjects, setCommunityProjects] = useState<CommunityProject[]>([]);
   const [communityLoading, setCommunityLoading] = useState(false);
+  const [selectedIndustry, setSelectedIndustry] = useState<string | null>(null);
+  const [templateSearchQuery, setTemplateSearchQuery] = useState('');
+  const [projectToPublish, setProjectToPublish] = useState<Project | null>(null);
+  const [communityProjectMenuOpen, setCommunityProjectMenuOpen] = useState<string | null>(null);
+  const [chatProjectId, setChatProjectId] = useState<string | null>(null);
+  const [chatProjectName, setChatProjectName] = useState<string>('');
+
+  // Load projects function - extracted so it can be called from anywhere
+  const loadProjects = async () => {
+    if (authLoading || !user) {
+      setIsInitialLoading(false);
+      return;
+    }
+
+    try {
+      const fetchedProjects = await getProjects();
+      setProjects(fetchedProjects);
+      if (fetchedProjects.length > 0 && !currentProject) {
+        setCurrentProject(fetchedProjects[0]);
+      }
+    } catch (error) {
+      console.error('Error loading projects:', error);
+    } finally {
+      setIsInitialLoading(false);
+    }
+  };
 
   // Load projects from Supabase when user is authenticated
   useEffect(() => {
-    async function loadProjects() {
-      if (authLoading || !user) {
-        setIsInitialLoading(false);
-        return;
-      }
-
-      try {
-        const fetchedProjects = await getProjects();
-        setProjects(fetchedProjects);
-        if (fetchedProjects.length > 0) {
-          setCurrentProject(fetchedProjects[0]);
-        }
-      } catch (error) {
-        console.error('Error loading projects:', error);
-      } finally {
-        setIsInitialLoading(false);
-      }
-    }
     loadProjects();
   }, [user, authLoading]);
 
@@ -196,7 +206,7 @@ export default function Home() {
         document.removeEventListener('mousedown', handleClickOutside);
       };
     }
-  }, [downloadMenuOpen, shareMenuOpen, publishModalOpen]);
+  }, [downloadMenuOpen, shareMenuOpen, publishModalOpen, communityProjectMenuOpen]);
 
   // Falling stars effect disabled to prevent screen flickering
   // The effect was creating new DOM elements every 200ms with infinite animations
@@ -375,7 +385,12 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
     window.open(gistUrl, '_blank');
   };
 
-  const handlePublishToCommunity = async (projectToPublish: Project) => {
+  const handlePublishToCommunity = async (
+    projectToPublish: Project,
+    category: string,
+    isTemplate: boolean,
+    tags: string[]
+  ) => {
     if (!projectToPublish.lastGeneratedCode) {
       alert('Please generate some code first before publishing to community!');
       return;
@@ -392,12 +407,16 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
         projectToPublish.name,
         projectToPublish.description || 'A project created with PageCrafter AI',
         projectToPublish.lastGeneratedCode,
-        authorName
+        authorName,
+        category,
+        isTemplate,
+        tags
       );
 
       if (published) {
         setCommunityProjects(prev => [published, ...prev]);
         setPublishModalOpen(false);
+        setProjectToPublish(null);
         alert(`🎉 "${projectToPublish.name}" has been published to the Community Hub!`);
       } else {
         alert('Failed to publish project. Please try again.');
@@ -405,6 +424,26 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
     } catch (error) {
       console.error('Error publishing to community:', error);
       alert('Failed to publish project. Please try again.');
+    }
+  };
+
+  const handleDeleteCommunityProject = async (projectId: string, projectName: string) => {
+    if (!confirm(`Are you sure you want to delete "${projectName}" from the community?`)) {
+      return;
+    }
+
+    try {
+      const success = await deleteCommunityProject(projectId);
+      if (success) {
+        setCommunityProjects(prev => prev.filter(p => p.id !== projectId));
+        setCommunityProjectMenuOpen(null);
+        alert(`✅ "${projectName}" has been deleted from the Community Hub.`);
+      } else {
+        alert('Failed to delete project. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting community project:', error);
+      alert('Failed to delete project. Please try again.');
     }
   };
 
@@ -665,7 +704,10 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                     <div className="p-2 space-y-1">
                       <button
                         onClick={() => {
-                          if (currentProject) handlePublishToCommunity(currentProject);
+                          if (currentProject) {
+                            setProjectToPublish(currentProject);
+                            setPublishModalOpen(false); // Close dropdown
+                          }
                         }}
                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors group"
                       >
@@ -999,11 +1041,15 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
 
                   {activeView === 'projects' && (
                     <div>
-                      <div className="flex items-center justify-between mb-8">
-                        <div>
-                          <h2 className="text-3xl font-bold text-white mb-2">Your Projects</h2>
-                          <p className="text-gray-400">Manage and edit your generated websites</p>
-                        </div>
+                      <div className="text-center mb-8">
+                        <h2 className={`text-4xl md:text-5xl font-black mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                          }`}>
+                          Your Projects
+                        </h2>
+                        <p className={`text-base ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Manage and edit your generated websites</p>
+                      </div>
+
+                      <div className="flex justify-center mb-8">
                         <button
                           onClick={() => handleNewProject(false)}
                           className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/25"
@@ -1013,13 +1059,19 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                       </div>
 
                       {projects.length === 0 ? (
-                        <div className="text-center py-20 bg-[#1a1c23] border border-gray-800 rounded-3xl">
-                          <div className="w-20 h-20 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <svg className="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className={`text-center py-20 rounded-3xl border ${theme === 'dark'
+                          ? 'bg-[#1a1c23] border-gray-800'
+                          : 'bg-white border-gray-200'
+                          }`}>
+                          <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${theme === 'dark' ? 'bg-gray-800/50' : 'bg-gray-100'
+                            }`}>
+                            <svg className={`w-10 h-10 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'
+                              }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                             </svg>
                           </div>
-                          <h3 className="text-xl font-bold text-white mb-2">No projects yet</h3>
+                          <h3 className={`text-xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                            }`}>No projects yet</h3>
                           <p className="text-gray-500 mb-8">Create your first project to start building</p>
                         </div>
                       ) : (
@@ -1031,21 +1083,32 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                                 setCurrentProject(project);
                                 setActiveView('chat');
                               }}
-                              className="group p-6 rounded-3xl bg-[#1a1c23] border border-gray-800 hover:border-indigo-500/50 transition-all cursor-pointer"
+                              className={`group p-6 rounded-3xl border transition-all cursor-pointer ${theme === 'dark'
+                                ? 'bg-[#1a1c23] border-gray-800 hover:border-indigo-500/50'
+                                : 'bg-white border-gray-200 hover:border-indigo-400 hover:shadow-lg'
+                                }`}
                             >
                               <div className="flex justify-between items-start mb-4">
-                                <div className="w-12 h-12 rounded-xl bg-indigo-600/10 flex items-center justify-center group-hover:bg-indigo-600/20 transition-colors">
+                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${theme === 'dark'
+                                  ? 'bg-indigo-600/10 group-hover:bg-indigo-600/20'
+                                  : 'bg-indigo-100 group-hover:bg-indigo-200'
+                                  }`}>
                                   <svg className="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                                   </svg>
                                 </div>
                                 <div className="flex gap-2">
-                                  <span className="text-xs text-gray-500 bg-gray-800/50 px-2 py-1 rounded-md">{project.messages.length} chats</span>
+                                  <span className={`text-xs px-2 py-1 rounded-md ${theme === 'dark'
+                                    ? 'text-gray-500 bg-gray-800/50'
+                                    : 'text-gray-600 bg-gray-100'
+                                    }`}>{project.messages.length} chats</span>
                                 </div>
                               </div>
-                              <h3 className="text-lg font-bold text-white mb-2 truncate">{project.name}</h3>
+                              <h3 className={`text-lg font-bold mb-2 truncate ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                                }`}>{project.name}</h3>
                               <p className="text-sm text-gray-500 line-clamp-2 mb-4">{project.description || 'No description provided'}</p>
-                              <div className="flex items-center justify-between text-xs text-gray-600">
+                              <div className={`flex items-center justify-between text-xs ${theme === 'dark' ? 'text-gray-600' : 'text-gray-500'
+                                }`}>
                                 <span>{new Date(project.createdAt).toLocaleDateString()}</span>
                                 <div className="flex items-center gap-1">
                                   <div className="w-2 h-2 rounded-full bg-green-500"></div>
@@ -1062,12 +1125,14 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                   {activeView === 'community' && (
                     <div className="space-y-8 animate-fade-in">
                       <div className="flex items-center justify-between">
-                        <h2 className="text-3xl font-bold text-white uppercase tracking-tight">Community Hub</h2>
+                        <h2 className={`text-3xl font-bold uppercase tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Community Hub</h2>
                         <div className="flex bg-[#1a1c23] p-1.5 rounded-2xl border border-gray-800/50 shadow-inner shadow-black/40">
                           {['Featured', 'Trending', 'Latest', 'Remixable'].map((tab) => (
                             <button
                               key={tab}
-                              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 ${tab === 'Featured' ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20' : 'text-gray-500 hover:text-gray-300'
+                              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 ${tab === 'Featured'
+                                ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20'
+                                : 'text-gray-500 hover:text-gray-300'
                                 }`}
                             >
                               {tab}
@@ -1082,34 +1147,51 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
-                              <h3 className="text-xl font-bold text-white uppercase tracking-tight">Published Projects</h3>
+                              <h3 className={`text-xl font-bold uppercase tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Published Projects</h3>
                               <span className="px-3 py-1 text-xs font-bold bg-purple-500/20 text-purple-400 rounded-full border border-purple-500/30">{communityProjects.length}</span>
                             </div>
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                             {communityProjects.map((project) => (
-                              <div key={project.id} className="group flex flex-col bg-[#1a1c23]/40 backdrop-blur-sm rounded-[2rem] overflow-hidden border border-purple-500/30 hover:border-purple-400/50 transition-all duration-500 shadow-2xl hover:-translate-y-2">
-                                <div className="relative h-56 overflow-hidden bg-gradient-to-br from-purple-900/40 to-indigo-900/40">
+                              <div key={project.id} className={`group flex flex-col rounded-[2rem] overflow-hidden border transition-all duration-500 shadow-xl hover:-translate-y-2 ${theme === 'dark'
+                                ? 'bg-[#1a1c23]/40 backdrop-blur-sm border-purple-500/30 hover:border-purple-400/50'
+                                : 'bg-white border-gray-200 hover:border-indigo-400 hover:shadow-2xl'
+                                }`}>
+                                <div className={`relative h-56 overflow-hidden ${theme === 'dark'
+                                  ? 'bg-gradient-to-br from-purple-900/40 to-indigo-900/40'
+                                  : 'bg-gradient-to-br from-indigo-50 to-purple-50'
+                                  }`}>
                                   <div className="absolute inset-0 flex items-center justify-center">
                                     <div className="text-center">
-                                      <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                                      <div className={`w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center shadow-lg ${theme === 'dark'
+                                        ? 'bg-gradient-to-r from-purple-500 to-indigo-500 shadow-purple-500/30'
+                                        : 'bg-gradient-to-r from-indigo-500 to-purple-500 shadow-indigo-300/50'
+                                        }`}>
                                         <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
                                       </div>
-                                      <span className="text-xs text-purple-300 font-bold uppercase tracking-wider">Live Preview</span>
+                                      <span className={`text-xs font-bold uppercase tracking-wider ${theme === 'dark' ? 'text-purple-300' : 'text-indigo-600'
+                                        }`}>Live Preview</span>
                                     </div>
                                   </div>
                                   <div className="absolute top-4 right-4">
-                                    <span className="px-3 py-1 text-[10px] font-black bg-purple-500 text-white rounded-full uppercase tracking-wider shadow-lg">Published</span>
+                                    <span className={`px-3 py-1 text-[10px] font-black rounded-full uppercase tracking-wider shadow-lg ${theme === 'dark'
+                                      ? 'bg-purple-500 text-white'
+                                      : 'bg-indigo-600 text-white'
+                                      }`}>Published</span>
                                   </div>
                                 </div>
                                 <div className="p-6 flex flex-col flex-1">
                                   <div className="flex items-center gap-3 mb-4">
-                                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-xs font-black text-white shadow-lg">
+                                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xs font-black text-white shadow-lg ${theme === 'dark'
+                                      ? 'bg-gradient-to-tr from-purple-600 to-indigo-600'
+                                      : 'bg-gradient-to-tr from-indigo-600 to-purple-600'
+                                      }`}>
                                       {project.authorName[0].toUpperCase()}
                                     </div>
                                     <div className="flex flex-col min-w-0">
-                                      <h4 className="text-white font-bold text-sm truncate tracking-tight">{project.projectName}</h4>
+                                      <h4 className={`font-bold text-sm truncate tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                                        }`}>{project.projectName}</h4>
                                       <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">by @{project.authorName}</span>
                                     </div>
                                   </div>
@@ -1133,6 +1215,21 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                                       >
                                         <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                       </button>
+
+                                      {/* Chat with Author Button */}
+                                      <button
+                                        title="Chat with Author"
+                                        onClick={() => {
+                                          setChatProjectId(project.id);
+                                          setChatProjectName(project.projectName);
+                                        }}
+                                        className="w-8 h-8 rounded-lg bg-blue-600/50 hover:bg-blue-500 flex items-center justify-center transition-colors"
+                                      >
+                                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                        </svg>
+                                      </button>
+
                                       <button
                                         title="Remix in Studio"
                                         onClick={() => {
@@ -1147,6 +1244,35 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                                       >
                                         <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                                       </button>
+
+                                      {/* Three-dot menu - Only show if user is the owner */}
+                                      {user && project.userId === user.id && (
+                                        <div className="relative">
+                                          <button
+                                            onClick={() => setCommunityProjectMenuOpen(communityProjectMenuOpen === project.id ? null : project.id)}
+                                            className="w-8 h-8 rounded-lg bg-gray-700/50 hover:bg-gray-600 flex items-center justify-center transition-colors"
+                                            title="More options"
+                                          >
+                                            <svg className="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                                              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                                            </svg>
+                                          </button>
+
+                                          {communityProjectMenuOpen === project.id && (
+                                            <div className="absolute right-0 bottom-full mb-2 w-48 rounded-xl bg-[#1a1c23] border border-gray-800 shadow-2xl overflow-hidden z-50 animate-fade-in">
+                                              <button
+                                                onClick={() => handleDeleteCommunityProject(project.id, project.projectName)}
+                                                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-400 hover:bg-red-500/10 transition-colors"
+                                              >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                                Delete Project
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -1162,7 +1288,7 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
                           </div>
-                          <h3 className="text-2xl font-bold text-white mb-3">No Projects Yet</h3>
+                          <h3 className={`text-2xl font-bold mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>No Projects Yet</h3>
                           <p className="text-gray-500 max-w-md mb-8">Be the first to share your creation with the community! Publish your project and inspire others.</p>
                           <button
                             onClick={() => {
@@ -1190,7 +1316,7 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                               </div>
                               <div>
-                                <h3 className="text-xl font-bold text-white mb-1">Share More Creations!</h3>
+                                <h3 className={`text-xl font-bold mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Share More Creations!</h3>
                                 <p className="text-gray-400 text-sm">Publish another project to the community</p>
                               </div>
                             </div>
@@ -1213,133 +1339,275 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                     </div>
                   )}
 
-                  {activeView === 'templates' && (
-                    <div className="flex flex-col h-full animate-fade-in group/templates">
-                      {/* Top AI Search Bar */}
-                      <div className="p-8 pb-6">
-                        <div className="max-w-[700px] mx-auto relative group">
-                          <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-indigo-500 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
-                          <div className="relative flex items-center bg-[#0f1117] border border-white/10 rounded-2xl px-5 py-4 shadow-2xl">
-                            <svg className="w-5 h-5 text-indigo-400 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                            <input
-                              type="text"
-                              placeholder="AI Matchmaker: Describe your business (e.g., Yoga studio in Bali)..."
-                              className="flex-1 bg-transparent border-none outline-none text-white text-base placeholder-gray-500 font-medium tracking-tight"
-                            />
-                            <div className="flex items-center gap-2 pl-4 border-l border-white/5">
-                              <svg className="w-4 h-4 text-indigo-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  {activeView === 'templates' && (() => {
+                    // Use real community projects that are marked as templates
+                    const allTemplates = communityProjects.filter(p => p.isTemplate).map(project => ({
+                      id: project.id,
+                      name: project.projectName,
+                      industry: project.category || 'Other',
+                      tags: project.tags || [],
+                      code: project.code,
+                      authorName: project.authorName,
+                      likes: project.likes,
+                      remixes: project.remixes,
+                    }));
+
+                    // Filter templates based on selected industry and search query
+                    const filteredTemplates = allTemplates.filter(template => {
+                      const matchesIndustry = !selectedIndustry || template.industry === selectedIndustry;
+                      const matchesSearch = !templateSearchQuery ||
+                        template.name.toLowerCase().includes(templateSearchQuery.toLowerCase()) ||
+                        template.tags.some(tag => tag.toLowerCase().includes(templateSearchQuery.toLowerCase()));
+                      return matchesIndustry && matchesSearch;
+                    });
+
+                    return (
+                      <div className="flex flex-col h-full animate-fade-in group/templates">
+                        {/* Top AI Search Bar */}
+                        <div className="p-8 pb-6">
+                          <div className="max-w-[700px] mx-auto relative group">
+                            <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-indigo-500 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
+                            <div className="relative flex items-center bg-[#0f1117] border border-white/10 rounded-2xl px-5 py-4 shadow-2xl">
+                              <svg className="w-5 h-5 text-indigo-400 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                              <input
+                                type="text"
+                                placeholder="AI Matchmaker: Describe your business (e.g., Yoga studio in Bali)..."
+                                value={templateSearchQuery}
+                                onChange={(e) => setTemplateSearchQuery(e.target.value)}
+                                className="flex-1 bg-transparent border-none outline-none text-white text-base placeholder-gray-500 font-medium tracking-tight"
+                              />
+                              <div className="flex items-center gap-2 pl-4 border-l border-white/5">
+                                <svg className="w-4 h-4 text-indigo-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                              </div>
                             </div>
+                          </div>
+                        </div>
+
+                        {/* Show selected category or filter prompt */}
+                        {selectedIndustry && (
+                          <div className="px-8 pb-4">
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm text-gray-400">Showing templates for:</span>
+                              <div className="flex items-center gap-2 px-4 py-2 bg-indigo-600/20 border border-indigo-500/30 rounded-xl">
+                                <span className="text-sm font-bold text-indigo-300">{selectedIndustry}</span>
+                                <button
+                                  onClick={() => setSelectedIndustry(null)}
+                                  className="text-indigo-400 hover:text-white transition-colors"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex flex-1 overflow-hidden px-8 pb-8 gap-8">
+                          {/* Side Filters */}
+                          <div className="w-64 h-full overflow-y-auto pr-6 hidden lg:flex flex-col gap-8 custom-scrollbar border-r border-white/5">
+                            <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 shadow-inner">
+                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Free / Premium</span>
+                              <div className="flex items-center gap-1 opacity-60">
+                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                                <div className="w-9 h-5 bg-indigo-600/40 rounded-full relative cursor-pointer border border-indigo-500/30">
+                                  <div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full shadow-lg"></div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col gap-6">
+                              <h3 className="text-[11px] font-black text-white/40 px-2 uppercase tracking-[0.2em]">Filter By</h3>
+
+                              <div className="flex flex-col gap-1">
+                                <button className="flex items-center justify-between px-3 py-2 text-xs font-black text-white bg-white/5 rounded-xl border border-white/5 group">
+                                  INDUSTRY
+                                  <svg className="w-4 h-4 text-gray-600 transition-transform group-hover:translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+                                </button>
+                                <div className="flex flex-col gap-1 py-2">
+                                  {['SaaS', 'Hospitality', 'Professional Services', 'Creative', 'Retail'].map(item => (
+                                    <button
+                                      key={item}
+                                      onClick={() => setSelectedIndustry(selectedIndustry === item ? null : item)}
+                                      className={`text-left px-4 py-2 text-xs font-bold transition-all hover:translate-x-1 ${selectedIndustry === item
+                                        ? 'text-indigo-400 bg-indigo-500/10 rounded-lg'
+                                        : 'text-gray-500 hover:text-white'
+                                        }`}
+                                    >
+                                      {item}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col gap-1 border-t border-white/5 pt-4">
+                                <button className="flex items-center justify-between px-3 py-2 text-xs font-black text-white group">
+                                  PAGE TYPE
+                                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+                                </button>
+                                <div className="px-4 py-2">
+                                  <button className="text-left text-xs font-bold text-gray-500 hover:text-white transition-all">Multi-Page Site</button>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col gap-1 border-t border-white/5 pt-4">
+                                <button className="flex items-center justify-between px-3 py-2 text-xs font-black text-white group">
+                                  FEATURES
+                                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+                                </button>
+                                <div className="flex flex-col gap-1 py-2">
+                                  {['Dark Mode', 'Payment', 'Login', '3D / WebGL', 'CMS Ready', 'Interactive'].map(item => (
+                                    <button key={item} className="text-left px-4 py-2 text-xs font-bold text-gray-500 hover:text-white transition-all hover:translate-x-1">{item}</button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Templates Grid */}
+                          <div className="flex-1 h-full overflow-y-auto custom-scrollbar pr-2">
+                            {filteredTemplates.length > 0 ? (
+                              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                                {filteredTemplates.map((template, idx) => (
+                                  <div key={template.id || idx} className="group flex flex-col bg-[#1a1c23]/60 backdrop-blur-md rounded-[2rem] overflow-hidden border border-white/5 hover:border-indigo-500/50 transition-all duration-500 shadow-2xl">
+                                    <div className="relative h-44 overflow-hidden bg-gradient-to-br from-indigo-600/20 to-purple-600/20 flex items-center justify-center">
+                                      <div className="text-6xl font-black text-white/10">{template.name.substring(0, 2)}</div>
+                                      <div className="absolute inset-0 bg-gradient-to-t from-[#0f1117] via-transparent to-black/20" />
+                                      <div className="absolute top-4 right-4 bg-purple-600 text-[9px] font-black text-white px-2.5 py-1 rounded-lg uppercase tracking-widest shadow-lg">
+                                        Template
+                                      </div>
+                                    </div>
+                                    <div className="p-5 flex flex-col gap-4">
+                                      <div className="flex flex-col gap-1.5">
+                                        <h4 className="text-white font-black text-sm tracking-tight">{template.name}</h4>
+                                        <p className="text-[10px] text-gray-500 font-semibold">by {template.authorName}</p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {template.tags.slice(0, 3).map(tag => (
+                                            <span key={tag} className="text-[9px] font-bold text-gray-500 bg-white/5 px-2 py-0.5 rounded-md">{tag}</span>
+                                          ))}
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-2 pt-2 border-t border-white/5">
+                                        <div className="flex items-center gap-3 text-[10px] text-gray-500 font-bold">
+                                          <span className="flex items-center gap-1">
+                                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" /></svg>
+                                            {template.likes}
+                                          </span>
+                                          <span>{template.remixes} remixes</span>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-2">
+                                        {/* Studio Button */}
+                                        <button
+                                          onClick={() => {
+                                            localStorage.setItem('remixProject', JSON.stringify({
+                                              name: template.name,
+                                              author: template.authorName,
+                                              code: template.code
+                                            }));
+                                            window.location.href = '/studio';
+                                          }}
+                                          title="Open in Studio"
+                                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-purple-600 text-white font-black text-[10px] rounded-xl hover:bg-purple-500 hover:shadow-lg hover:shadow-purple-500/20 transition-all active:scale-95 uppercase tracking-widest"
+                                        >
+                                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                          </svg>
+                                          Studio
+                                        </button>
+
+                                        {/* AI Chat Button */}
+                                        <button
+                                          onClick={async () => {
+                                            const newProject = await createProjectInDb(
+                                              `${template.name} (Copy)`,
+                                              `Based on ${template.name} by ${template.authorName}`
+                                            );
+
+                                            if (newProject) {
+                                              await updateProjectCodeInDb(newProject.id, template.code);
+                                              await loadProjects();
+                                              setCurrentProject(newProject);
+                                              setGeneratedCode(template.code);
+                                              setActiveView('chat');
+                                              alert(`✨ Template "${template.name}" ready to customize!`);
+                                            }
+                                          }}
+                                          title="Open in AI Chat"
+                                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-indigo-600 text-white font-black text-[10px] rounded-xl hover:bg-indigo-500 hover:shadow-lg hover:shadow-indigo-500/20 transition-all active:scale-95 uppercase tracking-widest"
+                                        >
+                                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                                          </svg>
+                                          AI
+                                        </button>
+
+                                        {/* Three-dot menu for template owner */}
+                                        {user && template.id && communityProjects.find(p => p.id === template.id && p.userId === user.id) && (
+                                          <div className="relative">
+                                            <button
+                                              onClick={() => setCommunityProjectMenuOpen(communityProjectMenuOpen === template.id ? null : template.id)}
+                                              className="w-8 h-8 rounded-lg bg-gray-700/50 hover:bg-gray-600 flex items-center justify-center transition-colors"
+                                              title="More options"
+                                            >
+                                              <svg className="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                                              </svg>
+                                            </button>
+
+                                            {communityProjectMenuOpen === template.id && (
+                                              <div className="absolute right-0 bottom-full mb-2 w-48 rounded-xl bg-[#1a1c23] border border-gray-800 shadow-2xl overflow-hidden z-50 animate-fade-in">
+                                                <button
+                                                  onClick={() => handleDeleteCommunityProject(template.id!, template.name)}
+                                                  className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-400 hover:bg-red-500/10 transition-colors"
+                                                >
+                                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                  </svg>
+                                                  Delete Template
+                                                </button>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center justify-center h-full text-center py-20">
+                                <div className="w-24 h-24 mb-6 rounded-3xl bg-gradient-to-r from-purple-600/20 to-indigo-600/20 border border-purple-500/30 flex items-center justify-center">
+                                  <svg className="w-12 h-12 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                </div>
+                                <h3 className="text-2xl font-bold text-white mb-3">No Templates Found</h3>
+                                <p className="text-gray-500 max-w-md mb-8">
+                                  {selectedIndustry
+                                    ? `No templates match your filters. Try selecting a different category.`
+                                    : `No templates match your search. Try a different keyword.`}
+                                </p>
+                                <button
+                                  onClick={() => {
+                                    setSelectedIndustry(null);
+                                    setTemplateSearchQuery('');
+                                  }}
+                                  className="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black rounded-2xl hover:shadow-xl hover:shadow-purple-500/20 transition-all hover:-translate-y-0.5 active:scale-95"
+                                >
+                                  Clear Filters
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
-
-                      <div className="flex flex-1 overflow-hidden px-8 pb-8 gap-8">
-                        {/* Side Filters */}
-                        <div className="w-64 h-full overflow-y-auto pr-6 hidden lg:flex flex-col gap-8 custom-scrollbar border-r border-white/5">
-                          <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 shadow-inner">
-                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Free / Premium</span>
-                            <div className="flex items-center gap-1 opacity-60">
-                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                              <div className="w-9 h-5 bg-indigo-600/40 rounded-full relative cursor-pointer border border-indigo-500/30">
-                                <div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full shadow-lg"></div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col gap-6">
-                            <h3 className="text-[11px] font-black text-white/40 px-2 uppercase tracking-[0.2em]">Filter By</h3>
-
-                            <div className="flex flex-col gap-1">
-                              <button className="flex items-center justify-between px-3 py-2 text-xs font-black text-white bg-white/5 rounded-xl border border-white/5 group">
-                                INDUSTRY
-                                <svg className="w-4 h-4 text-gray-600 transition-transform group-hover:translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
-                              </button>
-                              <div className="flex flex-col gap-1 py-2">
-                                {['SaaS', 'Hospitality', 'Professional Services', 'Creative', 'Retail'].map(item => (
-                                  <button key={item} className="text-left px-4 py-2 text-xs font-bold text-gray-500 hover:text-white transition-all hover:translate-x-1">{item}</button>
-                                ))}
-                              </div>
-                            </div>
-
-                            <div className="flex flex-col gap-1 border-t border-white/5 pt-4">
-                              <button className="flex items-center justify-between px-3 py-2 text-xs font-black text-white group">
-                                PAGE TYPE
-                                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
-                              </button>
-                              <div className="px-4 py-2">
-                                <button className="text-left text-xs font-bold text-gray-500 hover:text-white transition-all">Multi-Page Site</button>
-                              </div>
-                            </div>
-
-                            <div className="flex flex-col gap-1 border-t border-white/5 pt-4">
-                              <button className="flex items-center justify-between px-3 py-2 text-xs font-black text-white group">
-                                FEATURES
-                                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
-                              </button>
-                              <div className="flex flex-col gap-1 py-2">
-                                {['Dark Mode', 'Payment', 'Login', '3D / WebGL', 'CMS Ready', 'Interactive'].map(item => (
-                                  <button key={item} className="text-left px-4 py-2 text-xs font-bold text-gray-500 hover:text-white transition-all hover:translate-x-1">{item}</button>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Templates Grid */}
-                        <div className="flex-1 h-full overflow-y-auto custom-scrollbar pr-2">
-                          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                            {[
-                              { name: 'SaaS Dark Mode', tags: ['SaaS', 'E-commerce', 'Portfolio'], img: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800', badge: 'Trending', badgeColor: 'bg-orange-500' },
-                              { name: '3D Product Float', tags: ['Modern', 'Minimalist', 'Portfolio'], img: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800', badge: 'New', badgeColor: 'bg-cyan-500' },
-                              { name: 'Bento Grid Portfolio', tags: ['SaaS', 'E-commerce', 'Portfolio'], img: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800', badge: 'Premium', badgeColor: 'bg-amber-500' },
-                              { name: 'Glitch Agency', tags: ['SaaS', 'E-commerce'], img: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800' },
-                              { name: 'Bento Grid Portfolio', tags: ['SaaS', 'Portfolio', 'Cyberpunk'], img: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800' },
-                              { name: 'Glitch Agency', tags: ['SaaS', 'Minimalist'], img: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800' },
-                              { name: 'Trust Medical/Law', tags: ['Modern', 'Portfolio'], img: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800' },
-                              { name: 'Retro Blog', tags: ['SaaS', 'Minimalist'], img: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800' },
-                            ].map((template, idx) => (
-                              <div key={idx} className="group flex flex-col bg-[#1a1c23]/60 backdrop-blur-md rounded-[2rem] overflow-hidden border border-white/5 hover:border-indigo-500/50 transition-all duration-500 shadow-2xl">
-                                <div className="relative h-44 overflow-hidden">
-                                  <img src={template.img} alt={template.name} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
-                                  <div className="absolute inset-0 bg-gradient-to-t from-[#0f1117] via-transparent to-black/20" />
-                                  {template.badge && (
-                                    <div className={`absolute top-4 right-4 ${template.badgeColor} text-[9px] font-black text-white px-2.5 py-1 rounded-lg uppercase tracking-widest shadow-lg`}>
-                                      {template.badge}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="p-5 flex flex-col gap-4">
-                                  <div className="flex flex-col gap-1.5">
-                                    <h4 className="text-white font-black text-sm tracking-tight">{template.name}</h4>
-                                    <div className="flex flex-wrap gap-1.5">
-                                      {template.tags.map(tag => (
-                                        <span key={tag} className="text-[9px] font-bold text-gray-500 bg-white/5 px-2 py-0.5 rounded-md">{tag}</span>
-                                      ))}
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center gap-2 pt-2 border-t border-white/5">
-                                    <button className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-white/5 text-gray-300 font-bold text-[10px] rounded-xl hover:bg-white/10 transition-all uppercase tracking-widest">
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                      Preview
-                                    </button>
-                                    <button className="flex-[1.5] py-2.5 bg-indigo-600 text-white font-black text-[10px] rounded-xl hover:bg-indigo-500 hover:shadow-lg hover:shadow-indigo-500/20 transition-all active:scale-95 uppercase tracking-widest">
-                                      Use Template
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {activeView === 'assets' && (
                     <div className="space-y-8 animate-fade-in pb-10">
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                        <h2 className="text-4xl font-black text-white tracking-tighter">Assets Library</h2>
+                        <h2 className={`text-4xl font-black tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Assets Library</h2>
 
                         <div className="flex items-center gap-3">
                           <button className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white font-bold rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-purple-900/40">
@@ -1440,8 +1708,8 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                   {activeView === 'groups' && (
                     <div className="max-w-4xl mx-auto py-10">
                       <div className="text-center mb-16">
-                        <h2 className="text-4xl font-bold text-white mb-4">Team Workspaces</h2>
-                        <p className="text-gray-400">Collaborate with your team in real-time</p>
+                        <h2 className={`text-4xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Team Workspaces</h2>
+                        <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Collaborate with your team in real-time</p>
                       </div>
 
                       <div className="bg-[#1a1c23] rounded-3xl border border-gray-800 p-10 text-center">
@@ -1464,7 +1732,7 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                   {(activeView === 'settings' || activeView.startsWith('settings-')) && (
                     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-20">
                       <div className="flex flex-col gap-6">
-                        <h2 className="text-4xl font-black text-white tracking-tighter">Settings</h2>
+                        <h2 className={`text-4xl font-black tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Settings</h2>
 
                         {/* Settings Tabs */}
                         <div className="flex items-center gap-1 border-b border-gray-800/50 pb-px">
@@ -1473,7 +1741,7 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
                               key={tab}
                               onClick={() => setSettingsTab(tab)}
                               className={`px-6 py-4 text-sm font-bold transition-all relative ${settingsTab === tab
-                                ? 'text-white'
+                                ? theme === 'dark' ? 'text-white' : 'text-purple-600'
                                 : 'text-gray-500 hover:text-gray-300'
                                 }`}
                             >
@@ -1804,6 +2072,70 @@ ${project.lastGeneratedCode ? 'This project contains generated HTML, CSS, and Ja
         initialAdvanced={isNewProjectAdvanced}
         showAdvancedOption={isNewProjectAdvanced}
       />
+
+      {/* Publish Modal */}
+      <PublishModal
+        isOpen={projectToPublish !== null}
+        onClose={() => setProjectToPublish(null)}
+        onPublish={(category, isTemplate, tags) => {
+          if (projectToPublish) {
+            handlePublishToCommunity(projectToPublish, category, isTemplate, tags);
+          }
+        }}
+        projectName={projectToPublish?.name || ''}
+      />
+
+      {/* Chat Modal - Simple version */}
+      {chatProjectId && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999] animate-fade-in">
+          <div className="bg-[#1a1c23] rounded-3xl border border-purple-500/30 shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-800">
+              <div>
+                <h2 className="text-xl font-black text-white">Project Discussion</h2>
+                <p className="text-sm text-gray-500 font-semibold mt-1">{chatProjectName}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setChatProjectId(null);
+                  setChatProjectName('');
+                }}
+                className="w-10 h-10 rounded-xl bg-gray-800/50 hover:bg-gray-700 flex items-center justify-center transition-colors"
+              >
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Chat Content - Coming Soon */}
+            <div className="flex-1 flex items-center justify-center p-12">
+              <div className="text-center">
+                <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-blue-600/20 to-purple-600/20 flex items-center justify-center">
+                  <svg className="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-black text-white mb-3">Chat Feature Coming Soon!</h3>
+                <p className="text-gray-500 font-semibold max-w-md mx-auto mb-6">
+                  We're building a real-time chat system so you can discuss projects with authors and the community.
+                </p>
+                <div className="flex items-center justify-center gap-4">
+                  <button
+                    onClick={() => {
+                      setChatProjectId(null);
+                      setChatProjectName('');
+                    }}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-black rounded-xl hover:shadow-lg hover:shadow-purple-500/20 transition-all"
+                  >
+                    Got it!
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
