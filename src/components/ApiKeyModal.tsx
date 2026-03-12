@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { getUserApiKey, saveUserApiKey, deleteUserApiKey } from '@/lib/supabaseOperations';
 
 interface ApiKeyModalProps {

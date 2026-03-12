@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useTheme } from '../contexts/ThemeContext';
-import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import FeatureAnimation from '../components/FeatureAnimation';
+import FeatureAnimation from '@/components/FeatureAnimation';
 
 function LoginForm() {
   const { theme } = useTheme();

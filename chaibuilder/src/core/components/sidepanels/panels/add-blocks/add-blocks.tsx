@@ -197,7 +197,7 @@ export const ChaiBuilderBlocks = ({
               <div className={`${!disableBlockGroupsSidebar ? "p-4" : "p-0"} space-y-6`}>
                 {displayedGroups.map((group, index: number) => (
                   <div key={group} className="space-y-3">
-                    <h3 className="px-1 text-sm font-medium">{capitalize(t(group.toLowerCase()))}</h3>
+                    <h3 className="px-1 text-sm font-medium text-gray-900">{capitalize(t(group.toLowerCase()))}</h3>
                     <div className={"grid gap-2 " + gridCols}>
                       {reject(
                         selectedGroup === "all" ? filter(values(displayedBlocks), { group }) : values(displayedBlocks),
@@ -277,8 +277,8 @@ const AddBlocksPanel = ({
     <div className={mergeClasses("flex h-full w-full flex-col overflow-hidden", className)}>
       {showHeading ? (
         <div className="mb-2 flex flex-col justify-between rounded-md bg-background/30 p-1">
-          <h1 className="flex flex-col items-baseline px-1 text-xl font-semibold xl:flex-col">{t("Add block")}</h1>
-          <span className="p-0 text-xs font-light leading-3 opacity-80 xl:pl-1">
+          <h1 className="flex flex-col items-baseline px-1 text-xl font-semibold text-gray-900 xl:flex-col">{t("Add block")}</h1>
+          <span className="p-0 text-xs font-light leading-3 text-gray-700 opacity-80 xl:pl-1">
             {tab === "html" ? t("Enter or paste TailwindCSS HTML snippet") : t("Click to add block to page")}
           </span>
         </div>

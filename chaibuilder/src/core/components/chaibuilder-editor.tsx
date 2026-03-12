@@ -27,7 +27,7 @@ import { syncBlocksWithDefaultProps } from "@chaibuilder/runtime";
 import { ChaiBuilderEditorProps, ChaiTheme } from "@chaibuilder/types";
 import { useAtom } from "jotai";
 import { each, noop, omit } from "lodash-es";
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { Toaster } from "sonner";
 
@@ -45,13 +45,15 @@ const ChaiWatchers = (props: ChaiBuilderEditorProps) => {
   const [, setIsPageLoaded] = useAtom(isPageLoadedAtom);
   const runValidation = useCheckStructure();
 
+  const lastPropsRef = useRef<any>(null);
   useEffect(() => {
-    builderStore.set(
-      // @ts-ignore
-      chaiBuilderPropsAtom,
-      omit(props, ["blocks", "translations", "pageExternalData", "globalStyles"]),
-    );
+    const coreProps = omit(props, ["blocks", "translations", "pageExternalData", "globalStyles"]);
+    if (JSON.stringify(coreProps) !== JSON.stringify(lastPropsRef.current)) {
+      builderStore.set(chaiBuilderPropsAtom, coreProps as any);
+      lastPropsRef.current = coreProps;
+    }
   }, [props]);
+
 
   useEffect(() => {
     builderStore.set(chaiPageExternalDataAtom, props.pageExternalData || {});

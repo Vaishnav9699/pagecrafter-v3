@@ -50,8 +50,8 @@ export function DropDown({ selected, onChange, rounded = false, options, disable
     <select
       disabled={!options.length || disabled}
       className={`${
-        rounded ? "rounded-md border border-border" : "border-0"
-      } disable:bg-gray-500 h-full w-full truncate rounded bg-background px-2 py-1 text-xs outline-none disabled:cursor-not-allowed`}
+        rounded ? "rounded-md border border-gray-300" : "border-0"
+      } disable:bg-gray-500 h-full w-full truncate rounded bg-white px-2 py-1 text-xs text-gray-900 outline-none disabled:cursor-not-allowed`}
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={(evt) => {
         if (evt.ctrlKey) {

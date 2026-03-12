@@ -193,8 +193,8 @@ export const BlockStyle = (props: EditOptionProps) => {
   return (
     <BlockStyleProvider canChange={canChange} canReset={currentClass && canReset}>
       <div className="group flex flex-row items-center py-2 first:pt-0 last:pb-0">
-        <div className="relative w-[70px] truncate text-xs text-foreground">
-          <span className={`text-[11px] ${currentClass && !canReset ? "text-foreground" : ""}`}>{t(label)}</span>
+        <div className="relative w-[70px] truncate text-xs text-gray-900">
+          <span className={`text-[11px] ${currentClass && !canReset ? "text-gray-900 font-semibold" : ""}`}>{t(label)}</span>
         </div>
         <div className="flex flex-row items-center">
           <div className="w-[150px]">

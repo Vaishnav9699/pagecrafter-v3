@@ -3,7 +3,6 @@ import { Button } from "@chaibuilder/components/ui/button";
 import { Label } from "@chaibuilder/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@chaibuilder/components/ui/tooltip";
 import { DesignTokensIcon } from "@chaibuilder/core/components/sidepanels/panels/design-tokens/DesignTokensIcon";
-import { useFuseSearch } from "@chaibuilder/core/constants/CLASSES_LIST";
 import { DESIGN_TOKEN_PREFIX } from "@chaibuilder/core/constants/STRINGS";
 import { getSplitChaiClasses } from "@chaibuilder/hooks/get-split-classes";
 import { useAddClassesToBlocks } from "@chaibuilder/hooks/use-add-classes-to-blocks";
@@ -13,9 +12,8 @@ import { useSelectedBlock, useSelectedBlockIds } from "@chaibuilder/hooks/use-se
 import { useSelectedStylingBlocks } from "@chaibuilder/hooks/use-selected-styling-blocks";
 import { CheckIcon, CopyIcon, Cross2Icon, PlusIcon } from "@radix-ui/react-icons";
 import { useAtomValue } from "jotai";
-import { first, get, isEmpty, isFunction, map } from "lodash-es";
+import { first, get, isEmpty, isFunction } from "lodash-es";
 import { Suspense, lazy, useMemo, useRef, useState } from "react";
-import Autosuggest from "react-autosuggest";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -40,7 +38,6 @@ export function ManualClasses({
   const [editingClassIndex, setEditingClassIndex] = useState(-1);
   const isSelectingSuggestion = useRef(false);
   const [isDesignTokenModalOpen, setIsDesignTokenModalOpen] = useState(false);
-  const fuse = useFuseSearch();
   const { t } = useTranslation();
   const [styleBlock] = useSelectedStylingBlocks();
   const block = useSelectedBlock();
@@ -174,69 +171,7 @@ export function ManualClasses({
     setNewCls("");
   };
 
-  const [suggestions, setSuggestions] = useState<any[]>([]);
   const designTokensEnabled = useBuilderProp("flags.designTokens", true);
-  const handleSuggestionsFetchRequested = ({ value }: any) => {
-    const search = value.trim().toLowerCase();
-    const matches = search.match(/.+:/g);
-    let classMatches = [];
-
-    // Get design token suggestions
-    let designTokenSuggestions: {
-      name: string;
-      id: string;
-      isDesignToken: boolean;
-    }[] = [];
-    if (designTokensEnabled && showDesignTokenSuggestions) {
-      if (search === "") {
-        // Show all design tokens when no search term
-        designTokenSuggestions = Object.entries(designTokens).map(([id, token]) => ({
-          name: token.name,
-          id: `${id}`,
-          isDesignToken: true,
-        }));
-      } else {
-        // Filter design tokens by search term
-        designTokenSuggestions = Object.entries(designTokens)
-          .filter(([, token]) => token.name.toLowerCase().includes(search))
-          .map(([id, token]) => ({
-            name: token.name,
-            id: `${id}`,
-            isDesignToken: true,
-          }));
-      }
-    }
-    if (matches && matches.length > 0) {
-      const [prefix] = matches;
-      const searchWithoutPrefix = search.replace(prefix, "");
-      const fuseResults = fuse.search(searchWithoutPrefix);
-      classMatches = fuseResults.map((result: any) => ({
-        ...result,
-        item: { ...result.item, name: prefix + result.item.name },
-      }));
-    } else {
-      classMatches = fuse.search(search);
-    }
-
-    // Combine design tokens with regular class suggestions, design tokens first
-    const allSuggestions = [...designTokenSuggestions, ...map(classMatches, "item")];
-    return setSuggestions(allSuggestions);
-  };
-
-  const handleSuggestionsClearRequested = () => {
-    setSuggestions([]);
-  };
-
-  const getSuggestionValue = (suggestion: any) => {
-    return suggestion.name; // Always return the display name
-  };
-
-  const renderSuggestion = (suggestion: any) => (
-    <div className="flex items-center gap-2 rounded-md p-1">
-      {suggestion.isDesignToken && <DesignTokensIcon className="h-4 w-4 text-gray-600" />}
-      <span>{suggestion.name}</span>
-    </div>
-  );
 
   const inputProps = useMemo(
     () => ({
@@ -261,22 +196,11 @@ export function ManualClasses({
           e.preventDefault();
           addNewClasses();
         }
-        if (e.key === "Tab" && suggestions.length > 0) {
-          e.preventDefault();
-          // Simulate ArrowDown to highlight
-          const downEvent = new KeyboardEvent("keydown", {
-            key: "ArrowDown",
-            code: "ArrowDown",
-            keyCode: 40,
-            bubbles: true,
-          });
-          e.target.dispatchEvent(downEvent);
-        }
       },
-      onChange: (_e: any, { newValue }: any) => setNewCls(newValue),
+      onChange: (e: any) => setNewCls(e.target.value),
       className: `w-full rounded-md text-xs px-2 hover:outline-0 bg-background border-border ${from === "default" ? "py-1" : "py-1.5"}`,
     }),
-    [newCls, t, inputRef, suggestions.length],
+    [newCls, t, inputRef],
   );
 
   const handleEditClass = (clsToRemove: string) => {
@@ -343,33 +267,9 @@ export function ManualClasses({
       </div>
       <div className={"relative flex items-center gap-x-3"}>
         <div className="relative flex w-full items-center gap-x-3">
-          <Autosuggest
-            suggestions={suggestions}
-            onSuggestionsFetchRequested={handleSuggestionsFetchRequested}
-            onSuggestionsClearRequested={handleSuggestionsClearRequested}
-            getSuggestionValue={getSuggestionValue}
-            renderSuggestion={renderSuggestion}
-            inputProps={inputProps}
-            onSuggestionSelected={(_e, { suggestionValue }) => {
-              isSelectingSuggestion.current = true;
-              const storageFormat = convertToStorageFormat(suggestionValue);
-              const fullClsNames = [storageFormat];
-              if (from === "designToken") {
-                if (isFunction(onAddNew)) onAddNew(fullClsNames);
-              } else {
-                addClassesToBlocks(selectedIds, fullClsNames, true);
-              }
-              setNewCls("");
-            }}
-            containerProps={{
-              className: "relative h-8 w-full gap-y-1 py-1 border-border text-xs",
-            }}
-            theme={{
-              suggestion: "bg-transparent",
-              suggestionHighlighted: "!bg-gray-300 dark:!bg-gray-800 cursor-pointer",
-              suggestionsContainerOpen:
-                "absolute bg-background no-scrollbar z-50 max-h-[230px] overflow-y-auto w-full  border border-border rounded-md",
-            }}
+          <input
+            {...inputProps}
+            onChange={(e) => setNewCls(e.target.value)}
           />
         </div>
         <Button

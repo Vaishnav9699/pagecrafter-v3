@@ -301,7 +301,7 @@ export const Node = memo(({ node, style, dragHandle }: NodeRendererProps<any>) =
             </div>
             <div
               className={cn(
-                "leading-1 flex w-full items-center",
+                "flex w-full items-center",
                 isLibBlock && "text-orange-600/90",
                 isLibBlock && isSelected && "text-orange-800",
                 isPartialBlock && "text-purple-600/90",
@@ -348,7 +348,7 @@ export const Node = memo(({ node, style, dragHandle }: NodeRendererProps<any>) =
             ) : null}
             <Tooltip>
               <TooltipTrigger
-                onClick={(event) => {
+                onClick={(event: any) => {
                   event.stopPropagation();
                   updateBlockProps([id], { _show: !isShown });
                   if (node.isOpen) {

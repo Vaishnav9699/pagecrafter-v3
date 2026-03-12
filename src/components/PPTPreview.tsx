@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Share2, Download, Globe, Link2, ChevronDown } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import HexagonalLoader from './HexagonalLoader';
 
 interface Slide {

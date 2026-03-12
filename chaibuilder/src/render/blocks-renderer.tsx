@@ -7,6 +7,7 @@ export const RenderBlocks = (
   props: RenderChaiBlocksProps & { repeaterData?: { index: number; dataKey: string }; type?: string },
 ) => {
   const { blocks, parent, repeaterData, type } = props;
+  if (!isArray(blocks)) return null;
   let filteredBlocks = uniqBy(
     filter(blocks, (block) => has(block, "_id") && (!isEmpty(parent) ? block._parent === parent : !block._parent)),
     "_id",

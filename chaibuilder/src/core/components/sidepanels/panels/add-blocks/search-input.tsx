@@ -13,7 +13,7 @@ export default function SearchInput({ value, setValue }: { value: string; setVal
             placeholder={t("Search blocks...")}
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            className="w-full flex-1 border-none p-0 leading-tight outline-none"
+            className="w-full flex-1 border-none p-0 leading-tight text-gray-900 outline-none"
           />
         </div>
         {value && (

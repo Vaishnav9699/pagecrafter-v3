@@ -176,7 +176,7 @@ export const AdvanceChoices = (props: RangeOptionsType) => {
         {unit === "class" ? (
           <>
             <input
-              className="h-6 w-24 rounded border border-foreground/20 bg-background px-2 py-0.5 text-sm focus-visible:outline-0"
+              className="h-6 w-24 rounded border border-gray-300 bg-white px-2 py-0.5 text-sm text-gray-900 focus-visible:outline-0"
               readOnly
               value={currentClass}
             />
@@ -240,9 +240,9 @@ export const AdvanceChoices = (props: RangeOptionsType) => {
                     setShowUnits(false);
                   }}
                   value={lift ? draggedVal : value}
-                  className={"h-6 w-14 rounded rounded-r-none border border-transparent bg-background pl-2 text-sm focus-visible:outline-0".concat(
+                  className={"h-6 w-14 rounded rounded-r-none border border-transparent bg-white pl-2 text-sm text-gray-900 focus-visible:outline-0".concat(
                     " ",
-                    error ? "border-red-500 text-red-500" : "border-foreground/20",
+                    error ? "border-red-500 text-red-500" : "border-gray-300",
                   )}
                 />
               )}
@@ -251,7 +251,7 @@ export const AdvanceChoices = (props: RangeOptionsType) => {
                   <button
                     type="button"
                     onClick={() => setShowUnits(!showUnits)}
-                    className="flex h-6 cursor-pointer items-center gap-x-1 rounded rounded-l-none bg-background p-px px-1 text-[11px] uppercase">
+                    className="flex h-6 cursor-pointer items-center gap-x-1 rounded rounded-l-none bg-white p-px px-1 text-[11px] uppercase text-gray-900 border border-l-0 border-gray-300">
                     <span className={`inline-block ${units.length === 1 ? "px-2 font-semibold" : ""}`}>{unit}</span>
                     {units.length > 1 ? <TriangleDownIcon /> : null}
                   </button>

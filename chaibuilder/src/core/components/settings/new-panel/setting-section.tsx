@@ -3,7 +3,7 @@ import { BlockStyle } from "@chaibuilder/core/components/settings/choices/block-
 import { MultipleChoices } from "@chaibuilder/core/components/settings/choices/multiple-choices";
 import { useSelectedBlockCurrentClasses } from "@chaibuilder/hooks/use-select-block-classes";
 import { flatten, has, intersection, map, startCase } from "lodash-es";
-import React, { createContext, useCallback, useMemo } from "react";
+import { createContext, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 const NestedOptions = ({ heading, items }: any) => {
@@ -36,7 +36,7 @@ const NestedOptions = ({ heading, items }: any) => {
 
   return (
     <details>
-      <summary className="my-px cursor-default rounded-md bg-gray-50 p-px px-2 text-[11px] text-foreground dark:bg-gray-800">
+      <summary className="my-px cursor-default rounded-md bg-gray-50 p-px px-2 text-[11px] text-gray-900 dark:bg-gray-800 dark:text-gray-100">
         <div className="inline">
           {startCase(t(heading.toLowerCase()))}
           {isAnyPropertySet ? (
@@ -96,9 +96,14 @@ export const StylingGroup = ({ section, showAccordian }: any) => {
             </div>
           </AccordionTrigger>
           <AccordionContent className="py-2">
-            {section.items.map((item: Record<string, any>) => {
+            {section.items.map((item: Record<string, any>, index: number) => {
               if (has(item, "component")) {
-                return React.createElement(item.component, { key: item.label });
+                const ItemComponent = item.component;
+                if (!ItemComponent) {
+                  console.warn(`Component for ${item.label || index} is undefined`);
+                  return null;
+                }
+                return <ItemComponent key={item.label || `component-${index}`} />;
               }
               if (!has(item, "styleType")) {
                 return <BlockStyle key={item.label + "block-style"} {...(item as any)} />;
@@ -117,7 +122,12 @@ export const StylingGroup = ({ section, showAccordian }: any) => {
         <div className="py-2">
           {section.items.map((item: Record<string, any>, index: number) => {
             if (has(item, "component")) {
-              return React.createElement(item.component, { key: item.label });
+              const ItemComponent = item.component;
+              if (!ItemComponent) {
+                console.warn(`Component for ${item.label || index} is undefined`);
+                return null;
+              }
+              return <ItemComponent key={item.label || `component-${index}`} />;
             }
             if (!has(item, "styleType")) {
               return <BlockStyle key={item.label + "block-style" + index} {...(item as any)} />;

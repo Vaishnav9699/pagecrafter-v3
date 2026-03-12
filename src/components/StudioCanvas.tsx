@@ -1,6 +1,6 @@
 'use client';
 
-import { useStudio, Layer } from '../contexts/StudioContext';
+import { useStudio, Layer } from '@/contexts/StudioContext';
 import { useEffect, useRef, useState } from 'react';
 
 export default function StudioCanvas() {

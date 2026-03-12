@@ -37,9 +37,9 @@ import {
   StackIcon,
 } from "@radix-ui/react-icons";
 import { useDebouncedCallback } from "@react-hookz/web";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { find, first, isEmpty } from "lodash-es";
-import { MouseEvent, useEffect, useMemo, useRef, useState } from "react";
+import { MouseEvent, useCallback, useMemo, useRef, useState } from "react";
 import { MoveHandler, RenameHandler, Tree, TreeApi } from "react-arborist";
 import { useTranslation } from "react-i18next";
 import { BlockMoreOptions } from "./block-more-options";
@@ -70,7 +70,8 @@ const ListTree = () => {
   const { moveBlocks } = useBlocksStoreUndoableActions();
   const canMove = useCanMove();
   const treeRef = useRef<TreeApi<any>>(null);
-  const [, setTreeRef] = useAtom(treeRefAtom);
+  const setTreeRef = useSetAtom(treeRefAtom);
+
   const { t } = useTranslation();
   const [parentContext, setParentContext] = useState<{ x: number; y: number } | null>(null);
   const clearSelection = () => {
@@ -208,23 +209,16 @@ const ListTree = () => {
     }
   };
 
-  useEffect(() => {
-    const updateTreeRef = () => {
-      if (treeRef.current) {
-        //@ts-ignore
-        setTreeRef(treeRef.current);
+  const setTreeRefCallback = useCallback(
+    (node: TreeApi<any> | null | undefined) => {
+      if (node) {
+        treeRef.current = node;
+        setTreeRef(node);
       }
-    };
-    //sets the ref once on mount if its available
-    updateTreeRef();
+    },
+    [setTreeRef],
+  );
 
-    /**Sets up a MutationObserver to watch for DOM changes and try setting the ref again */
-    const observer = new MutationObserver(updateTreeRef);
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    //disconnect observer on unmount
-    return () => observer.disconnect();
-  }, [setTreeRef]);
 
   const { hasPermission } = usePermissions();
 
@@ -309,7 +303,7 @@ const ListTree = () => {
                   "group flex h-[25px] w-full cursor-pointer items-center justify-between space-x-px px-2 py-0 outline-none",
                   ids.length === 0 ? "bg-primary/20" : "",
                 )}>
-                <div className="leading-1 flex items-center">
+                <div className="flex items-center">
                   <CardStackIcon className="h-3 w-3 flex-shrink-0 rotate-180" />
                   <div className="ml-1.5 flex items-center gap-x-1 truncate text-[13px]">Body</div>
                 </div>
@@ -323,7 +317,7 @@ const ListTree = () => {
             </div>
           </div>
           <Tree
-            ref={treeRef}
+            ref={setTreeRefCallback}
             height={window.innerHeight - 160}
             className="no-scrollbar !h-full max-w-full !overflow-y-auto !overflow-x-hidden"
             rowClassName="flex items-center h-full"
@@ -331,7 +325,7 @@ const ListTree = () => {
             onRename={onRename}
             openByDefault={false}
             onMove={onMove}
-            data={[...filteredTreeData]}
+            data={filteredTreeData}
             renderCursor={DefaultCursor}
             onSelect={onSelect}
             childrenAccessor={(d: any) => d.children}

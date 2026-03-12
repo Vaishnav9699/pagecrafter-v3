@@ -152,22 +152,26 @@ const UILibrarySection = ({
   // Filtering logic based on search
   const filteredBlocks = searchQuery.trim() && !isEmpty(searchResults) ? searchResults : libraryBlocks || [];
 
-  const mergedGroups = groupBy(filteredBlocks, "group");
+  const mergedGroups = useMemo(() => groupBy(filteredBlocks, "group"), [filteredBlocks]);
   const [selectedGroup, setGroup] = useState<string | null>(null);
 
   // Reset or update selected group when groups change
   useEffect(() => {
-    if (isEmpty(keys(mergedGroups))) {
-      setGroup(null);
+    const groups = keys(mergedGroups);
+    if (isEmpty(groups)) {
+      if (selectedGroup !== null) setGroup(null);
       return;
     }
 
     // If current selected group isn't available anymore, select the first available one
     if (!selectedGroup || !mergedGroups[selectedGroup]) {
-      setGroup(first(keys(mergedGroups)) || null);
-      return;
+      const firstGroup = first(groups) || null;
+      if (firstGroup !== selectedGroup) {
+        setGroup(firstGroup);
+      }
     }
   }, [mergedGroups, selectedGroup]);
+
 
   const blocks = get(mergedGroups, selectedGroup || "", []);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -261,7 +265,7 @@ const UILibrarySection = ({
                         role="button"
                         onClick={() => setGroup(group)}
                         className={cn(
-                          "flex w-full cursor-pointer items-center justify-between rounded-md p-2 text-sm text-foreground transition-all ease-in-out hover:bg-gray-200 dark:hover:bg-gray-800",
+                          "flex w-full cursor-pointer items-center justify-between rounded-md p-2 text-sm text-gray-900 transition-all ease-in-out hover:bg-gray-200 dark:text-gray-100 dark:hover:bg-gray-800",
                           group === selectedGroup ? "bg-primary text-primary-foreground hover:bg-primary/80" : "",
                         )}>
                         <span>{capitalize(t(group.toLowerCase()))}</span>

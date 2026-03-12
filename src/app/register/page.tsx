@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTheme } from '../contexts/ThemeContext';
-import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import FeatureAnimation from '../components/FeatureAnimation';
+import FeatureAnimation from '@/components/FeatureAnimation';
 
 export default function RegisterPage() {
     const { theme } = useTheme();

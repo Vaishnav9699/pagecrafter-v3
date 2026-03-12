@@ -11,7 +11,7 @@ import {
   ChevronDown,
   Sparkles
 } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Project } from '../../lib/supabaseOperations';
 
 interface SidebarProps {

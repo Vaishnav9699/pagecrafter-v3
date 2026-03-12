@@ -8,8 +8,9 @@ export const adjustSpacingInContentBlocks = (blocks: ChaiBlock[]) => {
     const keys = Object.keys(block);
     for (let i = 0; i < keys.length; i++) {
       if (isString(block[keys[i]]) && startsWith(keys[i], "content")) {
+        const value = block[keys[i]] || "";
         const space = block === lastBlock ? "" : " ";
-        block[keys[i]] = `${block[keys[i]].trim()}${space}`;
+        block[keys[i]] = `${value.trim()}${space}`;
       }
     }
     return block;

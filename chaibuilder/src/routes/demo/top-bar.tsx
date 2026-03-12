@@ -7,15 +7,8 @@ import { startTransition, useEffect, useState } from "react";
 
 const Logo = () => {
   return (
-    <div className="flex w-96 items-center gap-2">
-      <a href="https://chaibuilder.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-        <img src="/chaibuilder-logo.png" alt="Chai Builder" width={32} height={32} className="rounded-md" />
-        <span className="font-mono font-bold tracking-tight">ChaiBuilder</span>
-      </a>
-
-      <a href="https://github.com/chaibuilder/sdk" target="_blank" rel="noopener noreferrer">
-        <img src="https://img.shields.io/github/stars/chaibuilder/sdk" alt="Chai Builder" className="rounded-md" />
-      </a>
+    <div className="flex items-center gap-x-2 px-2">
+      <span className="text-lg font-bold tracking-tight text-gray-900">PageCrafter</span>
     </div>
   );
 };

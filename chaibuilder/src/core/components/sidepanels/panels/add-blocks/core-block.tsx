@@ -49,11 +49,11 @@ export const CoreBlock = ({
             onDragStart={(ev) => !isDisabled && onDragStart(ev, { ...block, label: label, icon: icon })}
             onDragEnd={onDragEnd}
             draggable={isDragAndDropEnabled && !isDisabled}
-            className={`${kebabCase(`chai-block-${type}`)} ${isDragAndDropEnabled && !isDisabled ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} space-y-2 rounded-lg border border-border p-3 text-center hover:bg-slate-300/50 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:border-gray-700 dark:text-white dark:hover:bg-slate-800/50 dark:disabled:bg-gray-900 dark:disabled:text-foreground ${
+            className={`${kebabCase(`chai-block-${type}`)} ${isDragAndDropEnabled && !isDisabled ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} space-y-2 rounded-lg border border-border p-3 text-center text-gray-900 hover:bg-slate-300/50 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:border-gray-700 dark:hover:bg-slate-800/50 dark:disabled:bg-gray-900 dark:disabled:text-foreground ${
               isDisabled ? "opacity-50" : ""
             }`}>
-            {createElement(icon || BoxIcon, { className: "w-4 h-4 mx-auto", "data-add-core-block-icon": type })}
-            <p className="truncate text-xs">{capitalize(t(label || type))}</p>
+            {createElement(icon || BoxIcon, { className: "w-4 h-4 mx-auto text-gray-900", "data-add-core-block-icon": type })}
+            <p className="truncate text-xs font-medium text-gray-900">{capitalize(t(label || type))}</p>
           </button>
         </TooltipTrigger>
         <TooltipContent>

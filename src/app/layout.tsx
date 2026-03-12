@@ -3,8 +3,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
-import { AuthProvider } from "./contexts/AuthContext";
+import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const inter = Inter({
   variable: "--font-inter",

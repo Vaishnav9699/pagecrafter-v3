@@ -155,7 +155,7 @@ const ImagePickerField = ({ value, onChange, id, onBlur, uiSchema }: WidgetProps
           <>
             <p className="max-w-[250px] truncate pr-2 text-xs text-gray-400">{fileName}</p>
             <MediaManagerModal onSelect={handleSelect} assetId="">
-              <small className="mb-1 h-6 w-full cursor-pointer rounded-md bg-secondary px-1 py-1 text-center text-xs text-secondary-foreground hover:bg-secondary/80">
+              <small className="mb-1 h-6 w-full cursor-pointer rounded-md border border-gray-300 bg-white px-1 py-1 text-center text-xs text-gray-900 hover:bg-gray-100">
                 {!isEmpty(resolvedValue) && resolvedValue !== PLACEHOLDER_IMAGE
                   ? t("Replace image")
                   : t("Choose image")}
