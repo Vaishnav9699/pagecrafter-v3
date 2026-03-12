@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  chaibuilder-sdk:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev          # Use the development stage
+    container_name: chaibuilder-sdk
+    restart: unless-stopped
+    ports:
+      - "5173:5173"        # Vite dev server  →  http://localhost:5173
+    env_file:
+      - .env               # Load your secrets from .env file
+    volumes:
+      # Mount source so live-reload works while editing locally
+      - .:/app
+      # Preserve the container's node_modules (don't override with host)
+      - /app/node_modules
+    environment:
+      - HOST=0.0.0.0
+      - CHOKIDAR_USEPOLLING=true   # Required for file-watching on Windows/WSL
+      - GOOGLE_GENERATIVE_AI_API_KEY=${GOOGLE_GENERATIVE_AI_API_KEY}
+
+networks:
+  default:
+    name: chaibuilder-network

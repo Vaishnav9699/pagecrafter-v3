@@ -5,28 +5,28 @@ export async function POST(request: NextRequest) {
     try {
         const { prompt } = await request.json();
 
-        if (!process.env.GEMINI_API_KEY) {
+        const apiKey = process.env.GEMINI_API_KEY || process.env.Gemini_API_key;
+
+        if (!apiKey) {
             return NextResponse.json(
-                { error: "GEMINI_API_KEY is not configured" },
+                { error: "GEMINI_API_KEY is not configured. Please add it to your .env file." },
                 { status: 500 },
             );
         }
 
-        const ai = new GoogleGenAI({
-            apiKey: process.env.GEMINI_API_KEY,
-        });
+        const ai = new GoogleGenAI({ apiKey });
+        const modelName = "gemini-2.5-flash";
 
-        const model = "gemini-2.5-flash"; // Matched with working route
-        const config = {
-            thinkingConfig: {
-                thinkingBudget: -1,
-            },
-        };
+        const systemPrompt = `You are PageCrafter Magic AI. Your job is to generate a comprehensive, high-quality website structure based on a user's prompt. 
+You must return a JSON object containing an array of 'sections'.
 
-        const systemPrompt = `You are PageCrafter Magic AI. Your job is to generate a comprehensive website structure based on a user's prompt.
-You must return a JSON object containing an array of 'sections'. 
-
-Supported section types: 'hero', 'shop', 'features', 'footer'.
+Supported section types: 
+- 'hero': Large headline, subtext, button structure.
+- 'shop': Product-focused section (use this for services too).
+- 'features': 3-column feature list with icons.
+- 'footer': Bottom section with copyright.
+- 'content': General text/image section.
+- 'stats': Number-based achievements (e.g. "500+ Clients").
 
 JSON Structure Example:
 {
@@ -35,52 +35,48 @@ JSON Structure Example:
       "id": "hero-1",
       "type": "hero",
       "content": { "title": "Coffee Haven", "description": "Best beans in town." },
-      "style": { "background": "linear-gradient(to right, #2c1b0e, #4a301f)", "color": "#f3e5ab", "padding": "100px 40px", "textAlign": "center" }
+      "style": { "background": "linear-gradient(135deg, #2c1b0e 0%, #4a301f 100%)", "color": "#f3e5ab", "padding": "120px 40px", "textAlign": "center", "borderRadius": "0px" }
     },
     {
       "id": "features-1",
       "type": "features",
-      "content": { "title": "Why Choose Us" },
-      "style": { "background": "#fff", "padding": "60px 40px" }
+      "content": { "title": "Our Secret Sauce" },
+      "style": { "background": "#ffffff", "padding": "80px 40px", "color": "#1a1a1a" }
     }
   ]
 }
 
-Guidelines:
-1. Generate 4-6 sections.
-2. Mix types: include hero and footer.
-3. Be creative with styles.
-4. Return ONLY valid JSON between JSON_START and JSON_END markers.`;
+Guidelines for Quality:
+1. IMAGES: For any background images, use https://picsum.photos/seed/[keyword]/1600/900.
+2. COLORS: Use modern gradients and high-contrast accessible text.
+3. SECTIONS: Generate 5-8 sections to create a complete landing page.
+4. VARIETY: Ensure the styles (padding, background, color) feel premium and distinct.
+5. FORMAT: Return ONLY the JSON object. Do not include any text before or after the JSON.`;
 
-        const contents = [
-            {
-                role: "user",
-                parts: [{ text: `${systemPrompt}\n\nUser Request: ${prompt}` }],
-            },
-        ];
-
-        const response = await ai.models.generateContentStream({
-            model,
-            config,
-            contents,
+        const response = await ai.models.generateContent({
+            model: modelName,
+            contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\nUser Request: ${prompt}` }] }],
+            config: {
+                temperature: 0.7,
+                topP: 0.95,
+                maxOutputTokens: 16384,
+            }
         });
 
-        let fullResponse = "";
-        for await (const chunk of response) {
-            if (chunk.text) {
-                fullResponse += chunk.text;
-            }
-        }
+        let fullResponse = response.text || "";
+        
+        // Clean up any markdown blocks if the AI included them
+        const cleanedResponse = fullResponse.replace(/```json/g, '').replace(/```/g, '').trim();
 
-        const jsonMatch = fullResponse.match(/JSON_START\s*([\s\S]*?)\s*JSON_END/);
-
-        if (jsonMatch) {
-            const data = JSON.parse(jsonMatch[1].trim());
+        try {
+            const data = JSON.parse(cleanedResponse);
             return NextResponse.json(data);
-        } else {
-            // Fallback: try to parse the whole response if markers are missing
-            const data = JSON.parse(fullResponse.trim().replace(/```json/g, '').replace(/```/g, ''));
-            return NextResponse.json(data);
+        } catch (parseError) {
+            console.error("JSON Parse Error:", parseError, "Raw response:", fullResponse);
+            return NextResponse.json(
+                { error: "AI returned invalid JSON structure" },
+                { status: 500 }
+            );
         }
 
     } catch (error) {

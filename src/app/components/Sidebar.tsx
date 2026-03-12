@@ -8,7 +8,8 @@ import {
   LayoutGrid,
   Image as ImageIcon,
   Settings,
-  ChevronDown
+  ChevronDown,
+  Sparkles
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { Project } from '../../lib/supabaseOperations';
@@ -51,6 +52,7 @@ export default function Sidebar({
     { id: 'community', label: 'Community', icon: Globe },
     { id: 'templates', label: 'Templates', icon: LayoutGrid },
     { id: 'assets', label: 'Assets', icon: ImageIcon },
+    { id: 'chai-builder', label: 'Visual Builder', icon: Sparkles },
     { id: 'settings', label: 'Settings', icon: Settings, hasDropdown: true },
   ];
 

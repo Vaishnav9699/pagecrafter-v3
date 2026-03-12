@@ -20,9 +20,19 @@ interface Message {
   content: string;
 }
 
-
-
 import HexagonalLoader from './HexagonalLoader';
+
+// ============================================
+// UPGRADE #12: Style Presets
+// ============================================
+const STYLE_PRESETS = [
+  { id: 'none', label: '🎨 Auto', desc: 'AI decides the best style' },
+  { id: 'dark-premium', label: '🌙 Dark Premium', desc: 'Neon accents, glassmorphism' },
+  { id: 'clean-modern', label: '☀️ Clean Modern', desc: 'White, minimal, shadows' },
+  { id: 'colorful', label: '🎨 Colorful', desc: 'Vibrant gradients, bold' },
+  { id: 'corporate', label: '🏢 Corporate', desc: 'Professional, navy & gold' },
+  { id: 'ecommerce', label: '🛍️ E-commerce', desc: 'Product cards, cart UI' },
+];
 
 export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentProject, onMessagesUpdate, onCodeUpdate, onBack }: ChatPanelProps) {
   const { theme } = useTheme();
@@ -46,6 +56,10 @@ export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentPro
 
   const [activeTab, setActiveTab] = useState<'ai' | 'components' | 'styles'>('ai');
 
+  // UPGRADE #12: Style preset state
+  const [selectedPreset, setSelectedPreset] = useState('none');
+  const [showPresets, setShowPresets] = useState(false);
+
   // Update messages and code when currentProject changes
   useEffect(() => {
     if (currentProject) {
@@ -68,22 +82,14 @@ export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentPro
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading, activeTab]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-
-    const userMessage = input.trim();
-    setInput('');
+  // ============================================
+  // Core submit handler (also used by enhance)
+  // ============================================
+  const sendToAPI = async (prompt: string, refine: boolean = false) => {
     setIsLoading(true);
     onLoadingChange?.(true);
 
-    // Add user message to chat
-    const newMessages: Message[] = [...messages, { role: 'user' as const, content: userMessage }];
-    setMessages(newMessages);
-    onMessagesUpdate?.(newMessages);
-
     try {
-      // Get custom API key from localStorage
       const customApiKey = localStorage.getItem('gemini_api_key');
 
       const response = await fetch('/api/generate', {
@@ -92,11 +98,13 @@ export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentPro
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          prompt: userMessage,
+          prompt,
           previousHtml: lastGeneratedCode.html,
           previousCss: lastGeneratedCode.css,
           previousJs: lastGeneratedCode.js,
-          customApiKey: customApiKey || undefined
+          customApiKey: customApiKey || undefined,
+          stylePreset: selectedPreset !== 'none' ? selectedPreset : undefined,
+          refine,
         }),
       });
 
@@ -106,9 +114,32 @@ export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentPro
       }
 
       const data = await response.json();
+      return data;
+    } catch (error: any) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+      onLoadingChange?.(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    const userMessage = input.trim();
+    setInput('');
+
+    // Add user message to chat
+    const newMessages: Message[] = [...messages, { role: 'user' as const, content: userMessage }];
+    setMessages(newMessages);
+    onMessagesUpdate?.(newMessages);
+
+    try {
+      const data = await sendToAPI(userMessage);
 
       // Add assistant response to chat
-      const updatedMessages: Message[] = [...messages, { role: 'user' as const, content: userMessage }, { role: 'assistant' as const, content: data.response }];
+      const updatedMessages: Message[] = [...newMessages, { role: 'assistant' as const, content: data.response }];
       setMessages(updatedMessages);
       onMessagesUpdate?.(updatedMessages);
 
@@ -127,9 +158,40 @@ export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentPro
         role: 'assistant',
         content: errorMessage
       }]);
-    } finally {
-      setIsLoading(false);
-      onLoadingChange?.(false);
+    }
+  };
+
+  // ============================================
+  // UPGRADE #11: Enhance Button Handler
+  // ============================================
+  const handleEnhance = async () => {
+    if (isLoading || !lastGeneratedCode.html) return;
+
+    const enhanceMessage = "Enhance and improve this website — add missing sections, better animations, improved design, more interactivity";
+
+    // Add enhance message to chat
+    const newMessages: Message[] = [...messages, { role: 'user' as const, content: '✨ Enhance current design' }];
+    setMessages(newMessages);
+    onMessagesUpdate?.(newMessages);
+
+    try {
+      const data = await sendToAPI(enhanceMessage, true);
+
+      const updatedMessages: Message[] = [...newMessages, { role: 'assistant' as const, content: data.response }];
+      setMessages(updatedMessages);
+      onMessagesUpdate?.(updatedMessages);
+
+      if (data.code) {
+        setLastGeneratedCode(data.code);
+        onCodeUpdate?.(data.code);
+        onCodeGenerated(data.code, data.pages);
+      }
+    } catch (error: any) {
+      console.error('Enhance error:', error);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'Sorry, there was an error enhancing the design. Please try again.'
+      }]);
     }
   };
 
@@ -183,9 +245,55 @@ export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentPro
               </div>
               <span className="text-sm font-black text-white uppercase tracking-widest">AI Assistant</span>
             </div>
-            <button className="p-2 text-gray-500 hover:text-white transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
+
+            {/* UPGRADE #11: Enhance Button */}
+            {lastGeneratedCode.html && (
+              <button
+                onClick={handleEnhance}
+                disabled={isLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-xl hover:from-amber-400 hover:to-orange-400 hover:scale-105 active:scale-95 transition-all duration-200 shadow-lg shadow-amber-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Enhance the current design with better styling and interactivity"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+                ✨ Enhance
+              </button>
+            )}
+          </div>
+
+          {/* UPGRADE #12: Style Preset Selector */}
+          <div className="px-6 py-3 border-b border-white/5">
+            <button
+              onClick={() => setShowPresets(!showPresets)}
+              className="flex items-center gap-2 text-xs font-semibold text-gray-400 hover:text-white transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+              </svg>
+              Style: {STYLE_PRESETS.find(p => p.id === selectedPreset)?.label || '🎨 Auto'}
+              <svg className={`w-3 h-3 transition-transform ${showPresets ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
+
+            {showPresets && (
+              <div className="grid grid-cols-2 gap-2 mt-3 animate-fade-in">
+                {STYLE_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    onClick={() => { setSelectedPreset(preset.id); setShowPresets(false); }}
+                    className={`flex flex-col items-start p-3 rounded-xl text-left transition-all duration-200 ${selectedPreset === preset.id
+                      ? 'bg-indigo-600/20 border border-indigo-500/50 text-indigo-300'
+                      : 'bg-white/5 border border-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+                      }`}
+                  >
+                    <span className="text-sm font-bold">{preset.label}</span>
+                    <span className="text-[10px] opacity-70 mt-0.5">{preset.desc}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Messages */}
@@ -233,7 +341,7 @@ export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentPro
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Type a message..."
+                placeholder="Describe the website you want to build..."
                 className="w-full bg-white/5 border border-white/5 rounded-2xl pl-6 pr-14 py-4 text-sm text-white focus:outline-none focus:border-indigo-500/50 focus:bg-white/10 transition-all shadow-inner"
                 disabled={isLoading}
               />
@@ -270,7 +378,8 @@ export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentPro
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.1); }
-      `}</style>
+      `}
+      </style>
     </div>
   );
 }

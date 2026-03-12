@@ -1,0 +1,39 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Next.js build output
+.next
+out
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose.yml
+.dockerignore
+
+# IDE / Editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+*.lnk
+
+# Testing / Docs
+test_supabase.js
+list_models.js
+build_log.txt
+TEMPLATE_CHANGES_SUMMARY.md
+docs/
+
+# Misc
+*.md
+!README.md
+LICENSE

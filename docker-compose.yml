@@ -1,0 +1,49 @@
+# ============================================
+# PageCrafter v2 - Docker Compose
+# ============================================
+# Usage:
+#   Development:  docker compose up dev
+#   Production:   docker compose up prod
+# ============================================
+
+services:
+  # ---- Development Server (with hot-reloading) ----
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: pagecrafter-dev
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - WATCHPACK_POLLING=true
+    volumes:
+      # Mount source code for hot-reloading
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./middleware.ts:/app/middleware.ts
+      - ./next.config.ts:/app/next.config.ts
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./postcss.config.mjs:/app/postcss.config.mjs
+      # Don't mount node_modules (use container's copy)
+      - /app/node_modules
+      # Don't mount .next build cache
+      - /app/.next
+    restart: unless-stopped
+
+  # ---- Production Server ----
+  prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    container_name: pagecrafter-prod
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    restart: unless-stopped

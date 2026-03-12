@@ -1,0 +1,32 @@
+# ============================================
+# PageCrafter v2 - Development Dockerfile
+# ============================================
+# Hot-reloading development container
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies needed for native modules
+RUN apk add --no-cache libc6-compat
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Copy package files first
+COPY package.json pnpm-lock.yaml ./
+
+# Install all dependencies
+RUN pnpm install
+
+# Copy the rest of the application
+COPY . .
+
+# Disable Next.js telemetry
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Expose dev server port
+EXPOSE 3000
+
+# Start the dev server
+CMD ["pnpm", "run", "dev"]
