@@ -109,10 +109,80 @@ export default function ChatPanel({ onCodeGenerated, onLoadingChange, currentPro
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to generate code');
+        // Try to parse error as JSON first (non-streaming error responses)
+        const errorText = await response.text();
+        let errorMessage = 'Failed to generate code';
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // not JSON
+        }
+        throw new Error(errorMessage);
       }
 
+      const contentType = response.headers.get('content-type') || '';
+
+      // Handle SSE streaming response from the API
+      if (contentType.includes('text/event-stream')) {
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error('No response body');
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let result: any = null;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+
+          // Process complete SSE lines from the buffer
+          const lines = buffer.split('\n');
+          // Keep the last (potentially incomplete) line in the buffer
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || !trimmed.startsWith('data: ')) continue;
+
+            const jsonStr = trimmed.slice(6); // Remove "data: " prefix
+            try {
+              const event = JSON.parse(jsonStr);
+
+              if (event.type === 'done') {
+                // Final event with parsed code
+                result = {
+                  response: event.response,
+                  code: event.code,
+                  pages: event.pages,
+                };
+              } else if (event.type === 'error') {
+                throw new Error(event.error || 'Generation failed');
+              }
+              // 'chunk' events are intermediate streaming text — we can ignore them
+              // or use them for a live typing effect in the future
+            } catch (parseErr: any) {
+              // If it's a JSON parse error, skip this line
+              // If it's a thrown error from the event.type === 'error' branch, re-throw it
+              if (parseErr instanceof SyntaxError) {
+                // JSON parse error — skip this malformed SSE line
+                continue;
+              }
+              throw parseErr;
+            }
+          }
+        }
+
+        if (!result) {
+          throw new Error('No final response received from API stream');
+        }
+
+        return result;
+      }
+
+      // Fallback: handle normal JSON response (in case API changes back)
       const data = await response.json();
       return data;
     } catch (error: any) {
