@@ -37,7 +37,7 @@ const Component = (props: ChaiBlockComponentProps<ButtonProps>) => {
     "button",
     {
       ...blockProps,
-      ...styles,
+      ...(typeof styles === "object" ? styles : {}),
       type: "button",
       "aria-label": content,
     },

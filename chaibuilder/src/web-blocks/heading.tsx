@@ -12,10 +12,11 @@ export type HeadingProps = {
 const HeadingBlock = (props: ChaiBlockComponentProps<HeadingProps>) => {
   const { blockProps, styles, content, tag = "h1", children = null } = props;
 
-  if (children) return React.createElement(tag, { ...styles, ...blockProps }, children);
+  const styleAttrs = typeof styles === "object" ? styles : {};
+  if (children) return React.createElement(tag, { ...styleAttrs, ...blockProps }, children);
 
   return React.createElement(tag, {
-    ...styles,
+    ...styleAttrs,
     ...blockProps,
     dangerouslySetInnerHTML: { __html: content },
   });

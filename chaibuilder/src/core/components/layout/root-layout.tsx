@@ -5,6 +5,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@chaib
 import { AddBlocksPanel, Outline } from "@chaibuilder/core/components";
 import { AiIcon } from "@chaibuilder/core/components/ai/ai-icon";
 import { AskAI } from "@chaibuilder/core/components/ask-ai-panel";
+import { ChaiAiAssistant } from "@chaibuilder/core/components/ai/ChaiAiAssistant";
 import CanvasArea from "@chaibuilder/core/components/canvas/canvas-area";
 import { useIsDragAndDropEnabled } from "@chaibuilder/core/components/canvas/dnd/drag-and-drop/hooks";
 import { AddBlocksDialog } from "@chaibuilder/core/components/layout/add-blocks-dialog";
@@ -86,9 +87,22 @@ registerChaiSidebarPanel("add-block", {
   panel: () => <AddBlocksPanel showHeading={false} fromSidebar={true} parentId={undefined} position={-1} />,
 });
 
+registerChaiSidebarPanel("page-ai", {
+  button: AiButton,
+  label: "Page AI",
+  position: "top",
+  isInternal: true,
+  width: DEFAULT_PANEL_WIDTH + 40,
+  panel: () => (
+    <div className="h-full">
+      <ChaiAiAssistant />
+    </div>
+  ),
+});
+
 registerChaiSidebarPanel("chai-chat-panel", {
   button: AskAiButton,
-  label: "Ask AI",
+  label: "Block AI",
   position: "top",
   isInternal: true,
   width: DEFAULT_PANEL_WIDTH,

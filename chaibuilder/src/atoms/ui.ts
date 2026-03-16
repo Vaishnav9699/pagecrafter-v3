@@ -61,3 +61,12 @@ selectedLibraryAtom.debugLabel = "selectedLibraryAtom";
 export const dataBindingActiveAtom = atom(true);
 dataBindingActiveAtom.debugLabel = "dataBindingActiveAtom";
 export const lsThemeAtom = atomWithStorage<ChaiTheme>("chai-builder-theme", defaultThemeValues);
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+export const chaiAiChatAtom = atom<ChatMessage[]>([
+  { role: "assistant", content: "Hi! I'm your Chai Builder AI. I can help you create pages, manage blocks, and style your website. What would you like to build today?" }
+]);
+chaiAiChatAtom.debugLabel = "chaiAiChatAtom";

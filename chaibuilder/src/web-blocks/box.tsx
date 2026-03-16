@@ -21,7 +21,8 @@ const Component = (props: ChaiBlockComponentProps<BoxProps>) => {
     cssStyles = { backgroundImage: `url(${backgroundImage})` };
   }
 
-  return React.createElement(tag, { ...blockProps, ...styles, style: cssStyles }, nestedChildren);
+  const styleAttrs = typeof styles === "object" ? styles : {};
+  return React.createElement(tag, { ...blockProps, ...styleAttrs, style: cssStyles }, nestedChildren);
 };
 
 const Config: ChaiBlockConfig = {
